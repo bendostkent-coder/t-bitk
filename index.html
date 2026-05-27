@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Her Hafta Yeni Bir Şehit Analım - Gerçek Hafta Sistemi</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
     <style>
         :root {
             --primary-red: #da291c;
@@ -17,17 +19,20 @@
             --hover-bg: #fdf0f0;
             --current-week-glow: #ff6b6b;
         }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+
         body {
             background-color: var(--light-bg);
             color: var(--text-dark);
             padding-bottom: 70px;
         }
+
         #splash-screen {
             position: fixed;
             top: 0;
@@ -46,43 +51,67 @@
             text-align: center;
             padding: 20px;
         }
+
         #top-header {
             display: none;
             justify-content: space-between;
             align-items: center;
             background-color: var(--white);
             padding: 15px 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             position: sticky;
             top: 0;
             z-index: 100;
         }
+
         .header-title {
             color: var(--primary-red);
             font-weight: bold;
             font-size: 1.2rem;
         }
+
         .header-user {
             font-size: 0.9rem;
             color: var(--text-gray);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
+
         .logout-btn {
             color: var(--primary-red);
             cursor: pointer;
             text-decoration: none;
             font-weight: bold;
-            margin-left: 10px;
         }
+
+        .admin-btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .admin-btn:hover {
+            background: #d35400;
+        }
+
         .view-section {
             display: none;
             padding: 20px;
             max-width: 1200px;
             margin: 0 auto;
         }
+
         .view-section.active {
             display: block;
             animation: fadeIn 0.4s ease;
         }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -93,6 +122,7 @@
                 transform: translateY(0);
             }
         }
+
         .hero-banner {
             background: linear-gradient(rgba(218, 41, 28, 0.85), rgba(179, 32, 21, 0.9)),
                 url('https://images.unsplash.com/photo-1572889602517-5e60ce9b7e7a?auto=format&fit=crop&q=80') center/cover;
@@ -102,16 +132,19 @@
             border-radius: 10px;
             margin-bottom: 30px;
         }
+
         .hero-banner h1 {
             font-size: 2.5rem;
             margin-bottom: 15px;
         }
+
         .hero-banner p {
             font-size: 1.1rem;
             max-width: 700px;
             margin: 0 auto;
             line-height: 1.5;
         }
+
         .btn-primary {
             background-color: var(--primary-red);
             color: var(--white);
@@ -126,9 +159,11 @@
             text-align: center;
             margin-top: 10px;
         }
+
         .btn-primary:hover {
             background-color: var(--dark-red);
         }
+
         .btn-secondary {
             background-color: #f1f1f1;
             color: var(--text-dark);
@@ -140,6 +175,7 @@
             width: 100%;
             margin-top: 10px;
         }
+
         .btn-outline {
             background-color: transparent;
             border: 1px solid var(--primary-red);
@@ -151,40 +187,47 @@
             font-weight: bold;
             text-align: center;
         }
+
         .btn-outline:hover {
             background-color: var(--primary-red);
             color: white;
         }
+
         .card {
             background: var(--white);
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             margin-bottom: 20px;
         }
+
         .login-container {
             max-width: 400px;
             margin: 0 auto;
             background: var(--white);
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
+
         .form-group {
             margin-bottom: 15px;
         }
+
         .form-group label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
             font-size: 0.9rem;
         }
+
         .form-group input {
             width: 100%;
             padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 5px;
         }
+
         .login-divider {
             text-align: center;
             margin: 20px 0;
@@ -192,6 +235,7 @@
             font-size: 0.9rem;
             position: relative;
         }
+
         .login-divider::before,
         .login-divider::after {
             content: '';
@@ -201,12 +245,15 @@
             height: 1px;
             background: var(--border-color);
         }
+
         .login-divider::before {
             left: 0;
         }
+
         .login-divider::after {
             right: 0;
         }
+
         .intro-features {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -214,11 +261,13 @@
             margin-top: 40px;
             text-align: center;
         }
+
         .feature-card i {
             font-size: 2rem;
             color: var(--primary-red);
             margin-bottom: 15px;
         }
+
         .martyr-of-week {
             display: flex;
             flex-wrap: wrap;
@@ -226,6 +275,7 @@
             align-items: center;
             position: relative;
         }
+
         .current-week-badge {
             position: absolute;
             top: -10px;
@@ -236,19 +286,22 @@
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
+
         .martyr-img {
             width: 100%;
             max-width: 250px;
             border-radius: 10px;
             object-fit: cover;
         }
+
         .martyr-info {
             flex: 1;
             min-width: 250px;
             text-align: center;
         }
+
         .mission-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -256,6 +309,7 @@
             text-align: center;
             margin-top: 30px;
         }
+
         .mission-item i {
             background: var(--primary-red);
             color: var(--white);
@@ -266,12 +320,14 @@
             font-size: 1.5rem;
             margin-bottom: 15px;
         }
+
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
             gap: 10px;
             margin-top: 20px;
         }
+
         .week-box {
             background: var(--white);
             border: 1px solid var(--border-color);
@@ -284,22 +340,26 @@
             transition: 0.2s;
             position: relative;
         }
+
         .week-box:hover {
             border-color: var(--primary-red);
             background: var(--hover-bg);
             transform: scale(1.05);
         }
+
         .week-box.active {
             background: var(--primary-red);
             color: var(--white);
             border-color: var(--primary-red);
             box-shadow: 0 0 0 2px var(--current-week-glow);
         }
+
         .week-box.learned {
             background: #e8f5e9;
             color: #2e7d32;
             border-color: #a5d6a7;
         }
+
         .week-date-range {
             font-size: 0.65rem;
             font-weight: normal;
@@ -307,6 +367,7 @@
             margin-top: 3px;
             opacity: 0.7;
         }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -314,12 +375,13 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 1000;
             justify-content: center;
             align-items: center;
             padding: 20px;
         }
+
         .modal-content {
             background: var(--white);
             padding: 30px;
@@ -331,6 +393,7 @@
             overflow-y: auto;
             max-height: 90vh;
         }
+
         .close-modal {
             position: absolute;
             top: 15px;
@@ -339,15 +402,18 @@
             color: var(--text-gray);
             cursor: pointer;
         }
+
         .modal-content h2 {
             color: var(--primary-red);
             margin-bottom: 10px;
         }
+
         .modal-content p {
             line-height: 1.6;
             margin-bottom: 15px;
             color: var(--text-dark);
         }
+
         .modal-image {
             width: 100%;
             border-radius: 10px;
@@ -355,6 +421,7 @@
             object-fit: cover;
             max-height: 250px;
         }
+
         #concept-content {
             display: none;
             margin-top: 20px;
@@ -363,34 +430,41 @@
             border-left: 4px solid var(--primary-red);
             border-radius: 5px;
         }
+
         .archive-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
+
         .archive-card {
             border-top: 4px solid var(--primary-red);
         }
+
         .archive-card h3 {
             font-size: 1.1rem;
             margin-bottom: 10px;
         }
+
         .archive-card p {
             font-size: 0.9rem;
             color: var(--text-gray);
             margin-bottom: 5px;
         }
+
         .profile-header {
             text-align: center;
             margin-bottom: 30px;
         }
+
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin-bottom: 30px;
         }
+
         .stat-box {
             background: var(--white);
             padding: 20px;
@@ -398,11 +472,13 @@
             text-align: center;
             border: 1px solid var(--border-color);
         }
+
         .stat-box h2 {
             color: var(--primary-red);
             font-size: 2rem;
             margin-bottom: 5px;
         }
+
         .achievement-item {
             display: flex;
             justify-content: space-between;
@@ -410,16 +486,20 @@
             padding: 15px;
             border-bottom: 1px solid var(--border-color);
         }
+
         .achievement-item:last-child {
             border-bottom: none;
         }
+
         .ach-info h4 {
             margin-bottom: 5px;
         }
+
         .ach-info p {
             font-size: 0.85rem;
             color: var(--text-gray);
         }
+
         .progress-bar-bg {
             width: 100%;
             background: #eee;
@@ -427,6 +507,7 @@
             border-radius: 4px;
             margin-top: 10px;
         }
+
         .progress-bar-fill {
             background: var(--primary-red);
             height: 100%;
@@ -434,6 +515,7 @@
             width: 0%;
             transition: width 0.5s;
         }
+
         #bottom-nav {
             display: none;
             position: fixed;
@@ -441,15 +523,17 @@
             left: 0;
             width: 100%;
             background-color: var(--white);
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
             z-index: 100;
         }
+
         .nav-list {
             display: flex;
             justify-content: space-around;
             list-style: none;
             padding: 10px 0;
         }
+
         .nav-item {
             text-align: center;
             color: var(--text-gray);
@@ -457,18 +541,22 @@
             flex: 1;
             font-size: 0.8rem;
         }
+
         .nav-item i {
             display: block;
             font-size: 1.4rem;
             margin-bottom: 5px;
         }
+
         .nav-item.active {
             color: var(--primary-red);
         }
+
         .flag-icon {
             font-size: 1.2rem;
             margin-right: 5px;
         }
+
         .current-week-info {
             background: var(--primary-red);
             color: white;
@@ -478,6 +566,7 @@
             margin-bottom: 20px;
             font-weight: bold;
         }
+
         @media (max-width: 768px) {
             .hero-banner h1 {
                 font-size: 1.8rem;
@@ -499,6 +588,7 @@
                 padding: 8px 2px;
             }
         }
+
         .register-link {
             text-align: center;
             margin-top: 15px;
@@ -506,9 +596,165 @@
             color: var(--primary-red);
             font-weight: bold;
         }
+
+        /* Admin Panel Styles */
+        .admin-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .admin-stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-stat-card i {
+            font-size: 2rem;
+            color: #da291c;
+            margin-bottom: 10px;
+        }
+
+        .admin-stat-card h2 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+        }
+
+        .admin-stat-card p {
+            color: #7f8c8d;
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .admin-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-section h3 {
+            color: #da291c;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 10px;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        .admin-table th {
+            background: #f8f9fa;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .admin-progress-bar {
+            width: 100%;
+            background: #eee;
+            height: 18px;
+            border-radius: 9px;
+            overflow: hidden;
+        }
+
+        .admin-progress-fill {
+            background: #da291c;
+            height: 100%;
+            border-radius: 9px;
+            transition: width 0.3s;
+        }
+
+        .admin-week-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .admin-week-stat {
+            background: #f8f9fa;
+            padding: 8px;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .admin-week-stat span {
+            font-weight: bold;
+            color: #da291c;
+            display: block;
+            font-size: 1rem;
+        }
+
+        .admin-two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .admin-two-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .admin-export-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .admin-reset-btn {
+            background: #e67e22;
+        }
+
+        .admin-debug-info {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #856404;
+        }
+
+        .back-to-site-btn {
+            background: #da291c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .back-to-site-btn:hover {
+            background: #b32015;
+        }
     </style>
 </head>
 <body>
+
     <div id="splash-screen">
         <div>
             <i class="fa-solid fa-flag" style="font-size: 4rem; margin-bottom: 20px;"></i>
@@ -520,15 +766,21 @@
         <div class="header-title"><span class="flag-icon">🇹🇷</span> Her Hafta Yeni Bir Şehit Analım</div>
         <div class="header-user">
             Hoş geldin, <span id="user-name-display">Misafir</span>
+            <button class="admin-btn" id="admin-panel-btn" style="display:none;" onclick="openAdminPanel()">
+                <i class="fa-solid fa-chart-line"></i> Admin Panel
+            </button>
             <a class="logout-btn" onclick="logout()">Çıkış Yap</a>
         </div>
     </header>
+
+    <!-- ==================== KULLANICI GÖRÜNÜMLERİ ==================== -->
 
     <section id="view-login" class="view-section active">
         <div class="hero-banner">
             <h1><span class="flag-icon">🇹🇷</span> Her Hafta Yeni Bir Şehit Analım</h1>
             <p>Her hafta yeni bir şehidimizi anarak, onların fedakarlıklarını ve kahramanlıklarını gelecek nesillere aktarıyoruz.</p>
         </div>
+
         <div class="login-container">
             <div id="login-form">
                 <h2 style="text-align: center; margin-bottom: 20px;">Giriş Yap</h2>
@@ -564,6 +816,7 @@
             </div>
             <p style="text-align: center; font-size: 0.8rem; color: #7f8c8d; margin-top: 15px;">Kayıt olmadan siteyi gezebilirsiniz</p>
         </div>
+
         <h3 style="text-align: center; margin-top: 50px;">Giriş Yaptıktan Sonra Erişebileceğiniz Bölümler</h3>
         <div class="intro-features">
             <div class="card feature-card">
@@ -594,9 +847,11 @@
             <h1><span class="flag-icon">🇹🇷</span> Her Hafta Yeni Bir Şehit Analım</h1>
             <p>Vatanımız için canlarını feda eden kahramanlarımızı saygıyla anıyor, gelecek nesillere aktarıyoruz.</p>
         </div>
+
         <div class="current-week-info" id="current-week-banner">
             📅 Bugün içinde bulunduğumuz hafta: <span id="current-week-number">0</span>. hafta
         </div>
+
         <div class="card martyr-of-week">
             <div class="current-week-badge" id="week-badge">Bu Hafta (1. Hafta)</div>
             <img src="https://images.unsplash.com/photo-1595188689587-17ebbc69fbb7?auto=format&fit=crop&q=80&w=400" alt="Haftanın Şehidi" id="home-martyr-img" class="martyr-img">
@@ -607,6 +862,7 @@
                 <button class="btn-primary" style="width: auto; display: inline-block;" onclick="openMartyrModal(currentActiveWeek)"><i class="fa-solid fa-book-open"></i> Şehidi Detaylıca Öğren</button>
             </div>
         </div>
+
         <h2 style="text-align: center; margin-top: 40px; color: var(--text-dark);">Misyonumuz</h2>
         <div class="mission-grid">
             <div class="mission-item">
@@ -634,6 +890,7 @@
             <p>Vatanımız için canlarını feda eden kahramanlarımızın anısına...</p>
             <button id="toggle-concept-btn" class="btn-secondary" style="width: auto; display: inline-block; margin-top: 20px;" onclick="toggleConcept()">Şehitlik Kavramını Öğren</button>
         </div>
+
         <div id="concept-content">
             <h2 style="color: var(--primary-red); margin-bottom: 10px;">🇹🇷 Şehitlik Nedir?</h2>
             <p style="margin-bottom: 15px; line-height: 1.6;">Şehitlik, İslam dininde ve Türk kültüründe en yüce makamlardan biri olarak kabul edilen, vatan uğrunda veya hakkı müdafaa ederken hayatını kaybeden kişilerin ulaştığı manevi derecedir.</p>
@@ -664,14 +921,17 @@
                 </div>
             </div>
         </div>
+
         <h2 style="margin-top: 40px; text-align: center;">🇹🇷 Şehitlik Arşivi 🇹🇷</h2>
         <p style="text-align: center; color: var(--text-gray); margin-bottom: 20px;">Öğrenilecek 52 Hafta - 52 Kahraman</p>
+
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <input type="text" placeholder="İsim, şehir veya memleket ara..." id="search-input" style="flex: 2; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px;">
             <select id="city-filter" style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px;">
                 <option value="all">Tüm Şehirler</option>
             </select>
         </div>
+
         <div class="archive-grid" id="archive-list-container"></div>
     </section>
 
@@ -680,6 +940,7 @@
             <h1><span class="flag-icon">🇹🇷</span> Şehitlik Takvimi</h1>
             <p><span id="learned-count">0</span> / 52 Hafta Öğrenildi</p>
         </div>
+
         <div class="card" style="text-align: center;">
             <h3 style="margin-bottom: 20px;">52 Haftalık Plan - Her Hafta Yeni Bir Şehit</h3>
             <p style="margin-bottom: 15px; color: var(--primary-red); font-size: 0.9rem;">
@@ -700,23 +961,25 @@
             <p style="color: var(--primary-red); font-weight: bold; margin-bottom: 15px;" id="profile-name">Misafir Kullanıcı</p>
             <button class="btn-secondary" style="width: auto; padding: 8px 16px; font-size: 0.9rem;"><i class="fa-solid fa-pen"></i> Bilgileri Düzenle</button>
         </div>
+
         <div class="stats-grid">
             <div class="stat-box">
                 <h2 id="profile-learned-count">0</h2>
                 <p style="color: var(--text-gray); font-weight: bold;">Öğrenilen Şehit</p>
             </div>
             <div class="stat-box">
-                <h2>1</h2>
+                <h2 id="profile-achievement-count">0</h2>
                 <p style="color: var(--text-gray); font-weight: bold;">Kazanılan Başarı</p>
             </div>
         </div>
+
         <div class="card">
             <h3 style="margin-bottom: 15px; border-bottom: 2px solid var(--light-bg); padding-bottom: 10px;">Sonraki Hedef</h3>
             <div class="achievement-item" style="padding: 5px 0; border: none;">
                 <div class="ach-info" style="width: 100%;">
                     <div style="display: flex; justify-content: space-between;">
                         <h4>İlk Adım</h4>
-                        <span style="font-weight: bold; color: var(--primary-red);">0/1</span>
+                        <span style="font-weight: bold; color: var(--primary-red);" id="first-step-progress">0/1</span>
                     </div>
                     <p>İlk şehit hikayesini öğren.</p>
                     <div class="progress-bar-bg">
@@ -725,37 +988,39 @@
                 </div>
             </div>
         </div>
+
         <div class="card">
             <h3 style="margin-bottom: 15px; border-bottom: 2px solid var(--light-bg); padding-bottom: 10px;">🏆 Başarılar</h3>
-            <div class="achievement-item">
+
+            <div class="achievement-item" id="ach-1">
                 <div class="ach-info">
                     <h4 style="color: var(--text-gray);"><span class="flag-icon">🇹🇷</span> İlk Adım</h4>
                     <p>İlk şehit hikayesini öğrendin</p>
                 </div>
                 <i class="fa-solid fa-lock" style="color: #ccc;"></i>
             </div>
-            <div class="achievement-item">
+            <div class="achievement-item" id="ach-2">
                 <div class="ach-info">
                     <h4 style="color: var(--text-gray);"><span class="flag-icon">🇹🇷</span> Haftalık Takipçi</h4>
                     <p>5 şehit hikayesi öğrendin</p>
                 </div>
                 <i class="fa-solid fa-lock" style="color: #ccc;"></i>
             </div>
-            <div class="achievement-item">
+            <div class="achievement-item" id="ach-3">
                 <div class="ach-info">
                     <h4 style="color: var(--text-gray);"><span class="flag-icon">🇹🇷</span> Vatansever</h4>
                     <p>10 şehit hikayesi öğrendin</p>
                 </div>
                 <i class="fa-solid fa-lock" style="color: #ccc;"></i>
             </div>
-            <div class="achievement-item">
+            <div class="achievement-item" id="ach-4">
                 <div class="ach-info">
                     <h4 style="color: var(--text-gray);"><span class="flag-icon">🇹🇷</span> Kahramanların İzinde</h4>
                     <p>25 şehit hikayesi öğrendin</p>
                 </div>
                 <i class="fa-solid fa-lock" style="color: #ccc;"></i>
             </div>
-            <div class="achievement-item">
+            <div class="achievement-item" id="ach-5">
                 <div class="ach-info">
                     <h4 style="color: var(--text-gray);"><span class="flag-icon">🇹🇷</span> Altın Üye</h4>
                     <p>52 şehit hikayesi öğrendin</p>
@@ -763,7 +1028,118 @@
                 <i class="fa-solid fa-lock" style="color: #ccc;"></i>
             </div>
         </div>
+
         <button class="btn-primary" style="background-color: var(--text-dark);" onclick="logout()">Çıkış Yap</button>
+    </section>
+
+    <!-- ==================== ADMIN PANELİ GÖRÜNÜMÜ ==================== -->
+
+    <section id="view-admin" class="view-section">
+        <button class="back-to-site-btn" onclick="closeAdminPanel()">
+            <i class="fa-solid fa-arrow-left"></i> Siteye Geri Dön
+        </button>
+
+        <div class="hero-banner" style="padding: 30px 20px; background: linear-gradient(rgba(230, 126, 34, 0.85), rgba(211, 84, 0, 0.9));">
+            <h1><i class="fa-solid fa-chart-line"></i> Admin Analiz Paneli</h1>
+            <p>Sitenizin performansını ve kullanıcı başarılarını detaylıca inceleyin</p>
+        </div>
+
+        <div class="admin-stats-grid">
+            <div class="admin-stat-card">
+                <i class="fa-solid fa-users"></i>
+                <h2 id="adminTotalVisitors">0</h2>
+                <p>Toplam Ziyaretçi</p>
+            </div>
+            <div class="admin-stat-card">
+                <i class="fa-solid fa-user-plus"></i>
+                <h2 id="adminTotalUsers">0</h2>
+                <p>Kayıtlı Kullanıcı</p>
+            </div>
+            <div class="admin-stat-card">
+                <i class="fa-solid fa-check-circle"></i>
+                <h2 id="adminTotalLearned">0</h2>
+                <p>Toplam "Öğrendim"</p>
+            </div>
+            <div class="admin-stat-card">
+                <i class="fa-solid fa-eye"></i>
+                <h2 id="adminTotalDetails">0</h2>
+                <p>"Detaylı Öğren"</p>
+            </div>
+            <div class="admin-stat-card">
+                <i class="fa-solid fa-trophy"></i>
+                <h2 id="adminTotalAchievements">0</h2>
+                <p>Toplam Başarı</p>
+            </div>
+            <div class="admin-stat-card">
+                <i class="fa-solid fa-calendar-week"></i>
+                <h2 id="adminAvgLearnWeek">0</h2>
+                <p>Haftalık Ort. Öğrenme</p>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h3><i class="fa-solid fa-chart-simple"></i> Sayfa Görüntülenme</h3>
+            <div class="admin-two-columns">
+                <div>
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>Sayfa</th><th>Görüntülenme</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><i class="fa-solid fa-house"></i> Ana Sayfa</td><td id="adminPvHome">0</td></tr>
+                            <tr><td><i class="fa-solid fa-book"></i> Şehitlik</td><td id="adminPvMartyrs">0</td></tr>
+                            <tr><td><i class="fa-solid fa-calendar"></i> Takvim</td><td id="adminPvCalendar">0</td></tr>
+                            <tr><td><i class="fa-solid fa-user"></i> Hesabım</td><td id="adminPvProfile">0</td></tr>
+                            <tr><td><i class="fa-solid fa-right-to-bracket"></i> Giriş</td><td id="adminPvLogin">0</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <canvas id="adminPageChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h3><i class="fa-solid fa-calendar-alt"></i> Haftalık Öğrenme İstatistikleri</h3>
+            <p style="margin-bottom:15px;">Her hafta için kaç kez "Bu Hikayeyi Öğrendim" butonuna tıklandı?</p>
+            <div class="admin-week-stats" id="adminWeekStatsContainer"></div>
+            <canvas id="adminWeeklyChart" style="margin-top: 20px;"></canvas>
+        </div>
+
+        <div class="admin-section">
+            <h3><i class="fa-solid fa-users"></i> Kayıtlı Kullanıcılar ve Başarıları</h3>
+            <div style="overflow-x: auto;">
+                <table class="admin-table" id="adminUsersTable">
+                    <thead>
+                        <tr><th>Kullanıcı</th><th>E-posta</th><th>Öğrenilen</th><th>Başarılar</th><th>Yüzde</th></tr>
+                    </thead>
+                    <tbody id="adminUsersTableBody">
+                        <tr><td colspan="5">Yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p style="font-size: 0.9rem; color: #7f8c8d; margin-top: 10px;" id="adminUserCountInfo"></p>
+            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                <button class="admin-export-btn" onclick="adminExportCSV()"><i class="fa-solid fa-download"></i> CSV Dışa Aktar</button>
+                <button class="admin-export-btn admin-reset-btn" onclick="adminResetAllData()"><i class="fa-solid fa-trash"></i> Tüm Verileri Sıfırla</button>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h3><i class="fa-solid fa-clock"></i> Son Ziyaretçi Kayıtları</h3>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <table class="admin-table">
+                    <thead><tr><th>Cihaz Kimliği</th><th>Ziyaret Tarihi</th><th>Sayfa</th></tr></thead>
+                    <tbody id="adminVisitorLogsBody">
+                        <tr><td colspan="3">Yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="admin-debug-info" id="adminDebugInfo">
+                <i class="fa-solid fa-info-circle"></i> Veri durumu kontrol ediliyor...
+            </div>
+        </div>
     </section>
 
     <nav id="bottom-nav">
@@ -791,14 +1167,17 @@
             <p><i class="fa-solid fa-location-dot"></i> <strong>Görev Yeri:</strong> <span id="modal-location"></span></p>
             <p><i class="fa-solid fa-house"></i> <strong>Memleket:</strong> <span id="modal-hometown"></span></p>
             <p id="modal-desc"></p>
+
             <img src="" id="modal-image" class="modal-image" alt="Şehit Görseli">
+
             <p id="modal-story" style="white-space: pre-wrap; line-height: 1.8;"></p>
+
             <button class="btn-primary" onclick="markAsLearnedFromModal()"><span class="flag-icon">🇹🇷</span> Hikayeyi Öğrendim / Başarı Kazan</button>
         </div>
     </div>
 
     <script>
-        // ============== 52 HAFTALIK DETAYLI VERİTABANI ==============
+        // ============== 52 HAFTALIK VERİTABANI ==============
         const martyrsData = [
             { week: 1, name: "Astsubay Ömer Halisdemir", imgUrl: "https://images.unsplash.com/photo-1595188689587-17ebbc69fbb7?auto=format&fit=crop&q=80&w=400", desc: "15 Temmuz darbe girişiminde Özel Kuvvetler Komutanlığı'nı ele geçirmeye çalışan darbeci general Semih Terzi'yi vurarak şehadete yürüyen kahraman.", location: "Ankara (Özel Kuvvetler Komutanlığı)", hometown: "Niğde (Bor)", story: "🗡️ ÖMER HALİSDEMİR'İN KAHRAMANLIK HİKAYESİ 🗡️\n\nÖmer Halisdemir, 15 Temmuz 2016 gecesi, Türkiye'nin en kritik noktalarından biri olan Özel Kuvvetler Komutanlığı'nda nöbetçi astsubay olarak görev yapıyordu. Saatler gece yarısını gösterdiğinde, darbe girişimini haber alan komutanlık, kendini savunma pozisyonuna geçmişti.\n\nGece saat 01:30 sularında, darbeci general Semih Terzi ve beraberindeki askerler, Özel Kuvvetler Komutanlığı'nı ele geçirmek üzere geldi. Tam bu sırada, Ömer Halisdemir'in komutanı Tuğgeneral Zekai Aksakallı, ona tarihi bir emir verdi: 'Terzi'yi vur, şehadet getir!'\n\nHiç tereddüt etmeyen Ömer Halisdemir, soğukkanlılıkla silahını doğrulttu ve darbeci generali tam isabetle vurdu. Semih Terzi ağır yaralandı ve kısa süre sonra öldü. Bu kritik müdahale, darbenin Özel Kuvvetler kanadını tamamen çökertti ve binlerce masum insanın hayatını kurtardı.\n\nAncak kahramanlığının bedeli ağır oldu. Terzi'nin korumaları, olay yerinde Ömer Halisdemir'e 30'dan fazla kurşun sıktı. Vatan evladı, kanlar içinde yere yığıldı ve şehadete kavuştu.\n\n📌 Ömer Halisdemir'in naaşı, memleketi Niğde'nin Bor ilçesinde toprağa verildi. Bugün Türkiye'nin dört bir yanında onun adını taşıyan okullar, parklar, camiler ve caddeler bulunmaktadır. Her yıl 15 Temmuz'da, Demokrasi ve Milli Birlik Günü'nde, aziz şehidimiz minnet ve rahmetle anılmaktadır.\n\n🇹🇷 'Şehitler ölmez, vatan bölünmez!' 🇹🇷" },
             { week: 2, name: "Polis Memuru Fethi Sekin", imgUrl: "https://images.unsplash.com/photo-1572889602517-5e60ce9b7e7a?auto=format&fit=crop&q=80&w=400", desc: "İzmir Adliyesi'ne yönelik düzenlenen terör saldırısını canı pahasına kahramanca önleyen polis memuru.", location: "İzmir (İzmir Adliyesi)", hometown: "Elazığ (Baskil)", story: "🔫 FETHİ SEKİN'İN DESTANSI MÜCADELESİ 🔫\n\n5 Ocak 2017 sabahı, İzmir Adliyesi'nde görevli polis memuru Fethi Sekin, mesaisine başlamıştı. Saat 10:45 civarında, adliyenin C kapısı önüne bir panelvan araç yanaştı. Araçtaki hareketlilik, tecrübeli polisin dikkatinden kaçmadı.\n\nFethi Sekin, tereddüt etmeden araca doğru ilerledi ve 'Dur, kimsiniz?' diye seslendi. İşte o an, araçtan inen teröristler uzun namlulu silahlarla ateş açmaya başladı. Aynı anda bomba yüklü araç infilak ettirildi.\n\n📢 Kahraman polisimiz, canını hiçe sayarak teröristlerin üzerine yürüdü. Mermisi bitene kadar çatışmaya devam etti. Tek başına, bir teröristi etkisiz hale getirdi ve diğerlerini adliye binasına yaklaştırmadı. Onun bu kahramanca direnişi sayesinde adliyedeki yüzlerce kişi tahliye edilebildi.\n\nAncak Fethi Sekin, çatışmada aldığı ağır yaralar sonucu şehit düştü. Onun bu fedakarlığı, büyük bir facianın önüne geçti. Teröristler daha sonra güvenlik güçleri tarafından etkisiz hale getirildi.\n\n🕊️ Fethi Sekin, vatan sevgisinin ve görev aşkının en büyük örneğidir. İzmir Adliyesi'nin önüne onun adı verilmiş, memleketi Elazığ'da ve İzmir'de adını taşıyan parklar, okullar ve camiler yapılmıştır.\n\n🇹🇷 Ruhun şad, mekanın cennet olsun kahraman polisimiz! 🇹🇷" },
@@ -806,7 +1185,6 @@
             { week: 4, name: "Öğretmen Şenay Aybüke Yalçın", imgUrl: "https://images.unsplash.com/photo-1572889602517-5e60ce9b7e7a?auto=format&fit=crop&q=80&w=400", desc: "Batman'ın Kozluk ilçesinde terör örgütü PKK'nın saldırısında gencecik yaşında şehit olan müzik öğretmeni.", location: "Batman (Kozluk İlçesi)", hometown: "Çorum (Osmancık)", story: "🎵 ŞENAY AYBÜKE YALÇIN - MÜZİĞİN VE UMUDUN SESİ 🎵\n\nŞenay Aybüke Yalçın, 2017 yılında henüz 22 yaşındaydı. Üniversiteden yeni mezun olmuş, ataması yapılmış ve Batman'ın Kozluk ilçesine müzik öğretmeni olarak gitmişti. Hayalleriyle dolu genç bir öğretmendi.\n\n🏫 Okulunda çocuklara müzik sevgisini aşılamak, onlara umut olmak istiyordu. Ancak 9 Haziran 2017 günü, okuldan evine dönerken terör örgütü PKK mensuplarının düzenlediği saldırıya hedef oldu.\n\n🎯 Aybüke Öğretmen, okul yolunda uğradığı hain saldırı sonucu ağır yaralandı. Tüm müdahalelere rağmen kurtarılamadı ve şehadete kavuştu. Türkiye, gencecik bir evladını, pırıl pırıl bir öğretmenini kaybetmişti.\n\n📚 Şenay Aybüke Yalçın, vatanına ve görevine olan bağlılığıyla hafızalara kazındı. Batman'da onun adını taşıyan bir kültür merkezi, memleketi Çorum'un Osmancık ilçesinde ise adını taşıyan bir okul ve park bulunmaktadır.\n\n🎼 Her yıl, ölüm yıl dönümünde öğrencileri ve sevenleri tarafından anılmakta, mezarı başında dualar okunmaktadır. Onun hayali olan müzikle dolu bir Türkiye için çalışmalar devam etmektedir.\n\n🇹🇷 'Öğretmenler yeni neslin mimarıdır, şehit öğretmenlerimiz ise bu vatanın en kıymetli evlatlarıdır.' 🇹🇷\n\n🎵 Ruhun şad, mekanın cennet olsun Aybüke Öğretmenim... 🎵" }
         ];
 
-        // 5. Haftadan 52. Haftaya kadar detaylı şehit bilgileri
         for (let i = 5; i <= 52; i++) {
             let sehitIsimleri = [
                 "Piyade Uzman Çavuş Musa Özkan", "Jandarma Uzman Çavuş Ferhat Gedik", "Polis Memuru Ozan Ölmez",
@@ -826,10 +1204,8 @@
                 "Polis Memuru Arda Işık", "Uzman Çavuş Efe Korkmazer", "Astsubay Üstçavuş Mert Yıldırım",
                 "Yüzbaşı Deniz Özkan", "Teğmen Güney Çelik", "Jandarma Astsubay Kıdemli Çavuş Poyraz Demir"
             ];
-
             let index = (i - 5) % sehitIsimleri.length;
             let name = sehitIsimleri[index];
-
             martyrsData.push({
                 week: i,
                 name: name,
@@ -841,7 +1217,20 @@
             });
         }
 
-        // ============= DÜZELTİLMİŞ ANALİTİK VERİ TOPLAMA SİSTEMİ =============
+        // ============= ADMIN HESABI BİLGİLERİ =============
+        const ADMIN_EMAIL = "admin@gmail.com";
+        const ADMIN_PASSWORD = "admin2013";
+
+        // ============= SİSTEM DEĞİŞKENLERİ =============
+        let learnedMartyrs = [];
+        let currentActiveWeek = 1;
+        let selectedModalMartyrWeek = 1;
+        let currentUser = null;
+        let isAdmin = false;
+        let adminWeeklyChart = null;
+        let adminPageChart = null;
+
+        // ============= ANALİTİK SİSTEMİ =============
         function ensureAnalyticsStructure() {
             let analytics = localStorage.getItem('siteAnalytics');
             if (!analytics) {
@@ -858,7 +1247,6 @@
             }
             try {
                 let data = JSON.parse(analytics);
-                // Eksik alanları tamamla
                 if (!data.totalVisitors) data.totalVisitors = [];
                 if (!data.pageViews) data.pageViews = { home: 0, martyrs: 0, calendar: 0, profile: 0, login: 0 };
                 if (data.totalLearnedClicks === undefined) data.totalLearnedClicks = 0;
@@ -881,31 +1269,46 @@
             }
         }
 
-        function initAnalytics() {
-            let analytics = ensureAnalyticsStructure();
+        function ensureAdminAccount() {
+            let users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+            let adminExists = users.find(u => u.email === ADMIN_EMAIL);
+            if (!adminExists) {
+                users.push({
+                    email: ADMIN_EMAIL,
+                    password: ADMIN_PASSWORD,
+                    fullname: 'Admin',
+                    learned: [],
+                    achievements: [],
+                    isAdmin: true
+                });
+                localStorage.setItem('appUsers', JSON.stringify(users));
+                console.log('✅ Admin hesabı otomatik oluşturuldu:', ADMIN_EMAIL);
+            }
+        }
 
-            // Ziyaretçi kaydı
+        function initAnalytics() {
+            ensureAnalyticsStructure();
+            ensureAdminAccount();
+            let analytics = ensureAnalyticsStructure();
             let visitorId = localStorage.getItem('visitorId');
             if (!visitorId) {
                 visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 localStorage.setItem('visitorId', visitorId);
-
                 if (!analytics.totalVisitors.includes(visitorId)) {
                     analytics.totalVisitors.push(visitorId);
                     localStorage.setItem('siteAnalytics', JSON.stringify(analytics));
                 }
             } else {
-                // Mevcut ziyaretçi ID'sini kontrol et, yoksa ekle
                 if (!analytics.totalVisitors.includes(visitorId)) {
                     analytics.totalVisitors.push(visitorId);
                     localStorage.setItem('siteAnalytics', JSON.stringify(analytics));
                 }
             }
-
             trackPageView();
         }
 
         function getCurrentPageName() {
+            if (document.getElementById('view-admin').classList.contains('active')) return 'admin';
             if (document.getElementById('view-home').classList.contains('active')) return 'home';
             if (document.getElementById('view-martyrs').classList.contains('active')) return 'martyrs';
             if (document.getElementById('view-calendar').classList.contains('active')) return 'calendar';
@@ -916,53 +1319,38 @@
         function trackPageView() {
             let analytics = ensureAnalyticsStructure();
             let currentView = getCurrentPageName();
-
+            if (currentView === 'admin') return;
             if (analytics.pageViews[currentView] !== undefined) {
                 analytics.pageViews[currentView]++;
             } else {
                 analytics.pageViews[currentView] = 1;
             }
-
-            // Ziyaretçi logu ekle
             analytics.visitorLogs.push({
                 ip: localStorage.getItem('visitorId') || 'unknown',
                 date: new Date().toISOString(),
                 page: currentView
             });
-
-            // Log limitini koru
             if (analytics.visitorLogs.length > 500) {
                 analytics.visitorLogs = analytics.visitorLogs.slice(-500);
             }
-
             localStorage.setItem('siteAnalytics', JSON.stringify(analytics));
-            console.log('📊 Sayfa görüntülendi:', currentView, 'Toplam:', analytics.pageViews[currentView]);
         }
 
         function trackDetailClick(weekNum) {
             let analytics = ensureAnalyticsStructure();
             analytics.totalDetailClicks = (analytics.totalDetailClicks || 0) + 1;
             localStorage.setItem('siteAnalytics', JSON.stringify(analytics));
-            console.log('📊 Detay tıklandı - Hafta:', weekNum, 'Toplam detay:', analytics.totalDetailClicks);
         }
 
         function trackLearnClick(weekNum) {
             let analytics = ensureAnalyticsStructure();
             analytics.totalLearnedClicks = (analytics.totalLearnedClicks || 0) + 1;
-
             if (!analytics.weeklyLearns) analytics.weeklyLearns = {};
             analytics.weeklyLearns[weekNum] = (analytics.weeklyLearns[weekNum] || 0) + 1;
-
             localStorage.setItem('siteAnalytics', JSON.stringify(analytics));
-            console.log('📊 Öğrenme kaydedildi - Hafta:', weekNum, 'Bu hafta:', analytics.weeklyLearns[weekNum], 'Toplam:', analytics.totalLearnedClicks);
         }
 
-        // Sistem değişkenleri
-        let learnedMartyrs = [];
-        let currentActiveWeek = 1;
-        let selectedModalMartyrWeek = 1;
-        let currentUser = null;
-
+        // ============= HAFTA HESAPLAMA =============
         function getCurrentWeek() {
             const now = new Date();
             const date = new Date(now.getTime());
@@ -976,13 +1364,13 @@
             return Math.min(Math.max(weekNumber, 1), 52);
         }
 
+        // ============= SPLASH VE BAŞLANGIÇ =============
         window.onload = () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
                 splash.style.opacity = '0';
                 setTimeout(() => { splash.style.display = 'none'; }, 500);
             }, 2000);
-
             initAnalytics();
             loadUserFromStorage();
             initSystemData();
@@ -995,25 +1383,31 @@
                 try {
                     currentUser = JSON.parse(storedUser);
                     learnedMartyrs = currentUser.learned || [];
+                    isAdmin = (currentUser.email === ADMIN_EMAIL);
                     document.getElementById('top-header').style.display = 'flex';
-                    document.getElementById('bottom-nav').style.display = 'block';
+                    document.getElementById('bottom-nav').style.display = isAdmin ? 'flex' : 'block';
                     document.getElementById('user-name-display').innerText = currentUser.fullname || currentUser.email;
                     document.getElementById('profile-name').innerText = currentUser.fullname || currentUser.email;
+                    if (isAdmin) {
+                        document.getElementById('admin-panel-btn').style.display = 'inline-block';
+                    }
                     switchView('view-home', document.querySelector('.nav-list .nav-item:first-child'));
                 } catch (e) {
-                    currentUser = null;
-                    learnedMartyrs = [];
-                    document.getElementById('top-header').style.display = 'none';
-                    document.getElementById('bottom-nav').style.display = 'none';
-                    switchView('view-login');
+                    resetToLogin();
                 }
             } else {
-                currentUser = null;
-                learnedMartyrs = [];
-                document.getElementById('top-header').style.display = 'none';
-                document.getElementById('bottom-nav').style.display = 'none';
-                switchView('view-login');
+                resetToLogin();
             }
+        }
+
+        function resetToLogin() {
+            currentUser = null;
+            learnedMartyrs = [];
+            isAdmin = false;
+            document.getElementById('top-header').style.display = 'none';
+            document.getElementById('bottom-nav').style.display = 'none';
+            document.getElementById('admin-panel-btn').style.display = 'none';
+            switchView('view-login');
         }
 
         function saveUserToStorage() {
@@ -1034,14 +1428,12 @@
             currentActiveWeek = getCurrentWeek();
             document.getElementById('current-week-number').innerText = currentActiveWeek;
             document.getElementById('week-badge').innerHTML = `Bu Hafta (${currentActiveWeek}. Hafta)`;
-
             const currentMartyr = martyrsData.find(m => m.week === currentActiveWeek);
             if (currentMartyr) {
                 document.getElementById('home-martyr-name').innerText = currentMartyr.name;
                 document.getElementById('home-martyr-desc').innerText = currentMartyr.desc.substring(0, 100) + "...";
                 document.getElementById('home-martyr-img').src = currentMartyr.imgUrl;
             }
-
             renderArchive();
             renderCalendar();
             updateProfileStats();
@@ -1051,7 +1443,6 @@
             const archiveGrid = document.getElementById('archive-list-container');
             const searchTerm = document.getElementById('search-input')?.value.toLowerCase() || '';
             const selectedCity = document.getElementById('city-filter')?.value || 'all';
-
             let filteredMartyrs = [...martyrsData];
             if (searchTerm) {
                 filteredMartyrs = filteredMartyrs.filter(m =>
@@ -1063,7 +1454,6 @@
             if (selectedCity !== 'all') {
                 filteredMartyrs = filteredMartyrs.filter(m => m.hometown === selectedCity);
             }
-
             archiveGrid.innerHTML = '';
             filteredMartyrs.forEach(martyr => {
                 const card = document.createElement('div');
@@ -1141,7 +1531,6 @@
                 learnedMartyrs.push(selectedModalMartyrWeek);
                 if (currentUser) {
                     currentUser.learned = [...learnedMartyrs];
-                    // Başarı kontrolü
                     const achievements = currentUser.achievements || [];
                     const learnedCount = learnedMartyrs.length;
                     if (learnedCount >= 1 && !achievements.includes('İlk Adım')) achievements.push('İlk Adım');
@@ -1167,36 +1556,29 @@
             const count = learnedMartyrs.length;
             document.getElementById('learned-count').innerText = count;
             document.getElementById('profile-learned-count').innerText = count;
+            const achCount = currentUser ? (currentUser.achievements || []).length : 0;
+            document.getElementById('profile-achievement-count').innerText = achCount;
             const progressFill = document.getElementById('achievement-progress');
-            if (count >= 1) progressFill.style.width = '100%';
-            const achievements = document.querySelectorAll('.achievement-item i');
+            const firstStepProgress = document.getElementById('first-step-progress');
             if (count >= 1) {
-                achievements[0].classList.remove('fa-lock');
-                achievements[0].classList.add('fa-unlock');
-                achievements[0].style.color = 'var(--primary-red)';
-                const firstAchText = document.querySelector('.achievement-item:first-child .ach-info h4');
-                if (firstAchText) firstAchText.style.color = 'var(--primary-red)';
+                progressFill.style.width = '100%';
+                if (firstStepProgress) firstStepProgress.innerText = '1/1';
             }
-            if (count >= 5) {
-                achievements[1].classList.remove('fa-lock');
-                achievements[1].classList.add('fa-unlock');
-                achievements[1].style.color = 'var(--primary-red)';
-            }
-            if (count >= 10) {
-                achievements[2].classList.remove('fa-lock');
-                achievements[2].classList.add('fa-unlock');
-                achievements[2].style.color = 'var(--primary-red)';
-            }
-            if (count >= 25) {
-                achievements[3].classList.remove('fa-lock');
-                achievements[3].classList.add('fa-unlock');
-                achievements[3].style.color = 'var(--primary-red)';
-            }
-            if (count >= 52) {
-                achievements[4].classList.remove('fa-lock');
-                achievements[4].classList.add('fa-unlock');
-                achievements[4].style.color = 'var(--primary-red)';
-            }
+            const achIds = ['ach-1', 'ach-2', 'ach-3', 'ach-4', 'ach-5'];
+            const thresholds = [1, 5, 10, 25, 52];
+            achIds.forEach((id, idx) => {
+                const el = document.getElementById(id);
+                if (el && count >= thresholds[idx]) {
+                    const icon = el.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('fa-lock');
+                        icon.classList.add('fa-unlock');
+                        icon.style.color = '#da291c';
+                    }
+                    const h4 = el.querySelector('h4');
+                    if (h4) h4.style.color = '#da291c';
+                }
+            });
         }
 
         function switchView(viewId, navElement = null) {
@@ -1228,12 +1610,16 @@
                 alert('Lütfen tüm alanları doldurun.');
                 return;
             }
+            if (email === ADMIN_EMAIL) {
+                alert('Bu e-posta adresi admin hesabına aittir. Farklı bir e-posta kullanın.');
+                return;
+            }
             let users = JSON.parse(localStorage.getItem('appUsers') || '[]');
             if (users.find(u => u.email === email)) {
                 alert('Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.');
                 return;
             }
-            const newUser = { email, fullname, password, learned: [], achievements: [] };
+            const newUser = { email, fullname, password, learned: [], achievements: [], isAdmin: false };
             users.push(newUser);
             localStorage.setItem('appUsers', JSON.stringify(users));
             alert('Kayıt başarılı! Şimdi giriş yapabilirsiniz.');
@@ -1247,6 +1633,7 @@
                 alert('E-posta ve şifrenizi giriniz.');
                 return;
             }
+            ensureAdminAccount();
             let users = JSON.parse(localStorage.getItem('appUsers') || '[]');
             const user = users.find(u => u.email === email && u.password === password);
             if (!user) {
@@ -1255,11 +1642,17 @@
             }
             currentUser = { ...user, learned: user.learned || [], achievements: user.achievements || [] };
             learnedMartyrs = currentUser.learned;
+            isAdmin = (currentUser.email === ADMIN_EMAIL);
             saveUserToStorage();
             document.getElementById('top-header').style.display = 'flex';
             document.getElementById('bottom-nav').style.display = 'block';
             document.getElementById('user-name-display').innerText = currentUser.fullname || currentUser.email;
             document.getElementById('profile-name').innerText = currentUser.fullname || currentUser.email;
+            if (isAdmin) {
+                document.getElementById('admin-panel-btn').style.display = 'inline-block';
+            } else {
+                document.getElementById('admin-panel-btn').style.display = 'none';
+            }
             currentActiveWeek = getCurrentWeek();
             renderCalendar();
             updateProfileStats();
@@ -1270,9 +1663,11 @@
         function guestLogin() {
             currentUser = null;
             learnedMartyrs = [];
+            isAdmin = false;
             localStorage.removeItem('currentUser');
             document.getElementById('top-header').style.display = 'flex';
             document.getElementById('bottom-nav').style.display = 'block';
+            document.getElementById('admin-panel-btn').style.display = 'none';
             document.getElementById('user-name-display').innerText = 'Misafir';
             document.getElementById('profile-name').innerText = 'Misafir Kullanıcı';
             currentActiveWeek = getCurrentWeek();
@@ -1285,9 +1680,11 @@
         function logout() {
             currentUser = null;
             learnedMartyrs = [];
+            isAdmin = false;
             localStorage.removeItem('currentUser');
             document.getElementById('top-header').style.display = 'none';
             document.getElementById('bottom-nav').style.display = 'none';
+            document.getElementById('admin-panel-btn').style.display = 'none';
             switchView('view-login');
         }
 
@@ -1302,6 +1699,253 @@
                 content.style.display = 'none';
                 btn.innerText = '🇹🇷 Şehitlik Kavramını Öğren';
                 btn.classList.replace('btn-primary', 'btn-secondary');
+            }
+        }
+
+        // ============= ADMIN PANELİ FONKSİYONLARI =============
+        function openAdminPanel() {
+            if (!isAdmin) {
+                alert('Bu sayfaya erişim yetkiniz yok!');
+                return;
+            }
+            document.getElementById('bottom-nav').style.display = 'none';
+            switchView('view-admin');
+            loadAdminData();
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('bottom-nav').style.display = 'block';
+            switchView('view-home', document.querySelector('.nav-list .nav-item:first-child'));
+        }
+
+        function safeGetAnalytics() {
+            return ensureAnalyticsStructure();
+        }
+
+        function safeGetUsers() {
+            let users = localStorage.getItem('appUsers');
+            if (!users) return [];
+            try { return JSON.parse(users); } catch (e) { return []; }
+        }
+
+        function loadAdminData() {
+            loadAdminVisitorStats();
+            loadAdminUsersAndAchievements();
+            loadAdminWeeklyLearns();
+            loadAdminPageViews();
+            loadAdminVisitorLogs();
+            updateAdminDebugInfo();
+        }
+
+        function updateAdminDebugInfo() {
+            const analytics = safeGetAnalytics();
+            const users = safeGetUsers();
+            const debugDiv = document.getElementById('adminDebugInfo');
+            if (debugDiv) {
+                debugDiv.innerHTML = `
+                    <i class="fa-solid fa-info-circle"></i> 
+                    <strong>Veri Durumu:</strong> 
+                    Ziyaretçi: ${(analytics.totalVisitors || []).length} | 
+                    Kullanıcı: ${users.length} | 
+                    Öğrenme: ${analytics.totalLearnedClicks || 0} | 
+                    Detay: ${analytics.totalDetailClicks || 0} | 
+                    Log: ${(analytics.visitorLogs || []).length}
+                    <br><small>Son güncelleme: ${new Date().toLocaleString('tr-TR')}</small>
+                `;
+            }
+        }
+
+        function loadAdminVisitorStats() {
+            const analytics = safeGetAnalytics();
+            const users = safeGetUsers();
+            document.getElementById('adminTotalVisitors').innerText = (analytics.totalVisitors || []).length;
+            document.getElementById('adminTotalLearned').innerText = analytics.totalLearnedClicks || 0;
+            document.getElementById('adminTotalDetails').innerText = analytics.totalDetailClicks || 0;
+            document.getElementById('adminTotalUsers').innerText = users.length;
+            let totalAchievements = 0;
+            users.forEach(user => {
+                totalAchievements += (user.achievements || []).length;
+            });
+            document.getElementById('adminTotalAchievements').innerText = totalAchievements;
+            const weeklyLearns = analytics.weeklyLearns || {};
+            let totalWeeks = 0,
+                sumLearns = 0;
+            for (let week in weeklyLearns) { sumLearns += weeklyLearns[week];
+                totalWeeks++; }
+            const avg = totalWeeks > 0 ? (sumLearns / totalWeeks).toFixed(1) : 0;
+            document.getElementById('adminAvgLearnWeek').innerText = avg;
+        }
+
+        function loadAdminUsersAndAchievements() {
+            const users = safeGetUsers();
+            const tbody = document.getElementById('adminUsersTableBody');
+            tbody.innerHTML = '';
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Henüz kayıtlı kullanıcı yok</td></tr>';
+                document.getElementById('adminUserCountInfo').innerHTML = 'Henüz kayıtlı kullanıcı bulunmuyor.';
+                return;
+            }
+            users.forEach(user => {
+                const learnedCount = (user.learned || []).length;
+                const achievements = user.achievements || [];
+                const percent = ((learnedCount / 52) * 100).toFixed(1);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${user.fullname || 'İsimsiz'} ${user.isAdmin ? '<span class="badge">Admin</span>' : ''}</strong></td>
+                    <td>${user.email}</td>
+                    <td>${learnedCount} / 52</td>
+                    <td>${achievements.length > 0 ? achievements.join(', ') : '<span style="color:#999;">Henüz yok</span>'}</td>
+                    <td>
+                        <div class="admin-progress-bar">
+                            <div class="admin-progress-fill" style="width: ${percent}%;"></div>
+                        </div>
+                        <span style="font-size:0.75rem">${percent}%</span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            document.getElementById('adminUserCountInfo').innerHTML = `Toplam <strong>${users.length}</strong> kayıtlı kullanıcı`;
+        }
+
+        function loadAdminWeeklyLearns() {
+            const analytics = safeGetAnalytics();
+            const weeklyLearns = analytics.weeklyLearns || {};
+            const container = document.getElementById('adminWeekStatsContainer');
+            container.innerHTML = '';
+            let maxLearn = 0;
+            for (let week in weeklyLearns) { if (weeklyLearns[week] > maxLearn) maxLearn = weeklyLearns[week]; }
+            for (let i = 1; i <= 52; i++) {
+                const count = weeklyLearns[i] || 0;
+                const percent = maxLearn > 0 ? (count / maxLearn) * 100 : 0;
+                const div = document.createElement('div');
+                div.className = 'admin-week-stat';
+                div.style.backgroundColor = count > 0 ? '#fff5f5' : '#f8f9fa';
+                div.innerHTML = `
+                    <div><strong>${i}. Hf</strong></div>
+                    <div><span>${count}</span></div>
+                    <div style="background:#eee; height:3px; border-radius:2px; margin-top:3px;">
+                        <div style="background:#da291c; width:${percent}%; height:3px; border-radius:2px;"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+            const labels = [];
+            const data = [];
+            for (let i = 1; i <= 52; i++) { labels.push(i);
+                data.push(weeklyLearns[i] || 0); }
+            if (adminWeeklyChart) adminWeeklyChart.destroy();
+            const ctx = document.getElementById('adminWeeklyChart').getContext('2d');
+            adminWeeklyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Öğrenme Tıklanma', data: data, backgroundColor: '#da291c',
+                        borderRadius: 5 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (ctx) =>
+                                `${ctx.raw} kez` } } },
+                    scales: { x: { ticks: { maxRotation: 90, autoSkip: true, maxTicksLimit: 15 } } }
+                }
+            });
+        }
+
+        function loadAdminPageViews() {
+            const analytics = safeGetAnalytics();
+            const pageViews = analytics.pageViews || { home: 0, martyrs: 0, calendar: 0, profile: 0, login: 0 };
+            document.getElementById('adminPvHome').innerText = pageViews.home || 0;
+            document.getElementById('adminPvMartyrs').innerText = pageViews.martyrs || 0;
+            document.getElementById('adminPvCalendar').innerText = pageViews.calendar || 0;
+            document.getElementById('adminPvProfile').innerText = pageViews.profile || 0;
+            document.getElementById('adminPvLogin').innerText = pageViews.login || 0;
+            if (adminPageChart) adminPageChart.destroy();
+            const ctx = document.getElementById('adminPageChart').getContext('2d');
+            adminPageChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ana Sayfa', 'Şehitlik', 'Takvim', 'Hesabım', 'Giriş'],
+                    datasets: [{
+                        data: [pageViews.home || 0, pageViews.martyrs || 0, pageViews.calendar || 0,
+                            pageViews.profile || 0, pageViews.login || 0
+                        ],
+                        backgroundColor: ['#da291c', '#e67e22', '#27ae60', '#3498db', '#95a5a6'],
+                        borderRadius: 5
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function loadAdminVisitorLogs() {
+            const analytics = safeGetAnalytics();
+            const logs = analytics.visitorLogs || [];
+            const tbody = document.getElementById('adminVisitorLogsBody');
+            tbody.innerHTML = '';
+            if (logs.length === 0) {
+                tbody.innerHTML =
+                    '<tr><td colspan="3" style="text-align:center;">Henüz ziyaretçi kaydı yok.</td></tr>';
+                return;
+            }
+            const recentLogs = logs.slice(-30).reverse();
+            recentLogs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><code>${(log.ip || 'bilinmiyor').substring(0, 25)}...</code></td>
+                    <td>${new Date(log.date).toLocaleString('tr-TR')}</td>
+                    <td>${log.page || '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function adminExportCSV() {
+            const users = safeGetUsers();
+            const analytics = safeGetAnalytics();
+            let csvRows = [];
+            csvRows.push(['Kullanıcı Adı', 'E-posta', 'Öğrenilen', 'Başarılar', 'Yüzde']);
+            users.forEach(user => {
+                const learnedCount = (user.learned || []).length;
+                const achievements = (user.achievements || []).join(', ');
+                const percent = ((learnedCount / 52) * 100).toFixed(1);
+                csvRows.push([user.fullname || 'İsimsiz', user.email, learnedCount, achievements,
+                percent + '%']);
+            });
+            csvRows.push([]);
+            csvRows.push(['GENEL İSTATİSTİKLER']);
+            csvRows.push(['Toplam Ziyaretçi', (analytics.totalVisitors || []).length]);
+            csvRows.push(['Toplam Kullanıcı', users.length]);
+            csvRows.push(['Toplam Öğrenme', analytics.totalLearnedClicks || 0]);
+            csvRows.push(['Toplam Detay', analytics.totalDetailClicks || 0]);
+            const csvContent = csvRows.map(row => row.join(',')).join('\n');
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'sehit_analiz_' + new Date().toISOString().slice(0, 10) + '.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function adminResetAllData() {
+            if (confirm(
+                    '⚠️ TÜM VERİLER SIFIRLANACAK!\n\nBu işlem geri alınamaz. Tüm kullanıcılar, istatistikler ve loglar silinecek.\n\nAdmin hesabı otomatik olarak yeniden oluşturulacak.\n\nDevam etmek istediğinize emin misiniz?'
+                    )) {
+                const initialAnalytics = {
+                    totalVisitors: [],
+                    pageViews: { home: 0, martyrs: 0, calendar: 0, profile: 0, login: 0 },
+                    totalLearnedClicks: 0,
+                    totalDetailClicks: 0,
+                    weeklyLearns: {},
+                    visitorLogs: []
+                };
+                localStorage.setItem('siteAnalytics', JSON.stringify(initialAnalytics));
+                localStorage.setItem('appUsers', JSON.stringify([]));
+                localStorage.removeItem('currentUser');
+                ensureAdminAccount();
+                loadAdminData();
+                alert('✅ Tüm veriler sıfırlandı! Admin hesabı yeniden oluşturuldu.');
             }
         }
     </script>
