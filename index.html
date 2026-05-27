@@ -598,57 +598,92 @@
             });
         }
 
+        // ============= ANALİTİK VERİ TOPLAMA SİSTEMİ (YENİ) =============
+        function initAnalytics() {
+            let analytics = localStorage.getItem('siteAnalytics');
+            if (!analytics) {
+                const initialData = {
+                    totalVisitors: [],
+                    pageViews: { home: 0, martyrs: 0, calendar: 0, profile: 0 },
+                    totalLearnedClicks: 0,
+                    totalDetailClicks: 0,
+                    weeklyLearns: {},
+                    visitorLogs: []
+                };
+                localStorage.setItem('siteAnalytics', JSON.stringify(initialData));
+            }
+            
+            // Ziyaretçi kaydı (benzersiz IP benzeri)
+            let visitorId = localStorage.getItem('visitorId');
+            if (!visitorId) {
+                visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('visitorId', visitorId);
+                
+                let analyticsData = JSON.parse(localStorage.getItem('siteAnalytics'));
+                if (!analyticsData.totalVisitors.includes(visitorId)) {
+                    analyticsData.totalVisitors.push(visitorId);
+                    localStorage.setItem('siteAnalytics', JSON.stringify(analyticsData));
+                }
+            }
+            
+            // Sayfa görüntülenme kaydı
+            trackPageView();
+        }
+        
+        function trackPageView() {
+            let currentView = '';
+            if (document.getElementById('view-home').classList.contains('active')) currentView = 'home';
+            else if (document.getElementById('view-martyrs').classList.contains('active')) currentView = 'martyrs';
+            else if (document.getElementById('view-calendar').classList.contains('active')) currentView = 'calendar';
+            else if (document.getElementById('view-profile').classList.contains('active')) currentView = 'profile';
+            else currentView = 'login';
+            
+            if (currentView !== 'login') {
+                let analytics = JSON.parse(localStorage.getItem('siteAnalytics'));
+                if (analytics.pageViews[currentView] !== undefined) {
+                    analytics.pageViews[currentView]++;
+                    analytics.visitorLogs.push({
+                        ip: localStorage.getItem('visitorId'),
+                        date: new Date().toISOString(),
+                        page: currentView
+                    });
+                    if (analytics.visitorLogs.length > 200) analytics.visitorLogs.shift();
+                    localStorage.setItem('siteAnalytics', JSON.stringify(analytics));
+                }
+            }
+        }
+        
+        function trackDetailClick(weekNum) {
+            let analytics = JSON.parse(localStorage.getItem('siteAnalytics'));
+            analytics.totalDetailClicks = (analytics.totalDetailClicks || 0) + 1;
+            localStorage.setItem('siteAnalytics', JSON.stringify(analytics));
+        }
+        
+        function trackLearnClick(weekNum) {
+            let analytics = JSON.parse(localStorage.getItem('siteAnalytics'));
+            analytics.totalLearnedClicks = (analytics.totalLearnedClicks || 0) + 1;
+            analytics.weeklyLearns[weekNum] = (analytics.weeklyLearns[weekNum] || 0) + 1;
+            localStorage.setItem('siteAnalytics', JSON.stringify(analytics));
+        }
+        
         // Sistem değişkenleri
         let learnedMartyrs = [];
         let currentActiveWeek = 1;
         let selectedModalMartyrWeek = 1;
-        let currentUser = null; // { email, fullname, learned: [] }
+        let currentUser = null;
 
-        // ============= DÜZELTİLMİŞ ISO HAFTA FONKSİYONU =============
-        // Bu fonksiyon gerçek tarihe göre doğru hafta numarasını döndürür
         function getCurrentWeek() {
             const now = new Date();
-            
-            // ISO hafta numarası hesaplama (Pazartesi'den başlayan hafta sistemi)
-            // Kaynak: https://en.wikipedia.org/wiki/ISO_week_date
-            
-            // Tarihi kopyala
             const date = new Date(now.getTime());
-            
-            // Perşembe gününe göre ayarla (ISO standardında hafta Perşembeye göre belirlenir)
             date.setHours(0, 0, 0, 0);
-            // Perşembe gününe git
             date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-            
-            // Yılın ilk Perşembesi
             const jan1 = new Date(date.getFullYear(), 0, 1);
-            const jan1Day = (jan1.getDay() + 6) % 7; // Pazartesi=0, Pazar=6
-            
-            // İlk haftanın başlangıcı (ilk Perşembeden 3 gün önce = Pazartesi)
+            const jan1Day = (jan1.getDay() + 6) % 7;
             const firstMonday = new Date(jan1);
             firstMonday.setDate(jan1.getDate() - jan1Day);
-            
-            // Hafta numarasını hesapla
             const weekNumber = Math.floor((date - firstMonday) / (7 * 24 * 60 * 60 * 1000)) + 1;
-            
-            // 52'yi geçmesin (bazı yıllar 53 hafta olabilir ama biz 52 ile sınırlıyoruz)
             return Math.min(weekNumber, 52);
         }
-        
-        // Alternatif basit test fonksiyonu (konsol için)
-        function testCurrentWeek() {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), 0, 0);
-            const diff = now - start;
-            const oneDay = 86400000;
-            const dayOfYear = Math.floor(diff / oneDay);
-            const week = Math.ceil((dayOfYear + start.getDay() + 1) / 7);
-            console.log("Bugün:", now.toLocaleDateString('tr-TR'));
-            console.log("Yılın günü:", dayOfYear);
-            console.log("Hafta:", week);
-            return week;
-        }
-        // ============================================================
 
         // Splash ekranı ve sistem başlangıcı
         window.onload = () => {
@@ -658,16 +693,18 @@
                 setTimeout(() => { splash.style.display = 'none'; }, 500);
             }, 2000);
             
-            // Önce haftayı hesapla ve konsola yazdır (debug için)
-            console.log("=== HAFTA HESAPLAMA TESTİ ===");
-            console.log("getCurrentWeek() sonucu:", getCurrentWeek());
-            console.log("testCurrentWeek() sonucu:", testCurrentWeek());
-            console.log("==============================");
+            initAnalytics();
             
-            // LocalStorage'dan kullanıcı ve öğrenilenler yükle
             loadUserFromStorage();
             initSystemData();
             setupSearchAndFilter();
+            
+            // Sayfa değişimlerini izle
+            const observer = new MutationObserver(() => { trackPageView(); });
+            observer.observe(document.getElementById('view-home'), { attributes: true, attributeFilter: ['class'] });
+            observer.observe(document.getElementById('view-martyrs'), { attributes: true, attributeFilter: ['class'] });
+            observer.observe(document.getElementById('view-calendar'), { attributes: true, attributeFilter: ['class'] });
+            observer.observe(document.getElementById('view-profile'), { attributes: true, attributeFilter: ['class'] });
         };
 
         function loadUserFromStorage() {
@@ -681,7 +718,6 @@
                 document.getElementById('profile-name').innerText = currentUser.fullname || currentUser.email;
                 switchView('view-home', document.querySelector('.nav-list .nav-item:first-child'));
             } else {
-                // Misafir değil, giriş yapılmamış demektir.
                 currentUser = null;
                 learnedMartyrs = [];
                 document.getElementById('top-header').style.display = 'none';
@@ -693,7 +729,6 @@
         function saveUserToStorage() {
             if (currentUser) {
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                // Aynı zamanda kullanıcı listesine de kaydedelim (basit database)
                 let users = JSON.parse(localStorage.getItem('appUsers') || '[]');
                 const existingIndex = users.findIndex(u => u.email === currentUser.email);
                 if (existingIndex >= 0) {
@@ -706,11 +741,7 @@
         }
 
         function initSystemData() {
-            // DÜZELTİLDİ: Her sayfa yüklemesinde hafta yeniden hesaplanıyor
             currentActiveWeek = getCurrentWeek();
-            console.log("Aktif hafta (currentActiveWeek):", currentActiveWeek);
-            
-            // Hafta bilgisini banner'a yaz
             document.getElementById('current-week-number').innerText = currentActiveWeek;
             document.getElementById('week-badge').innerHTML = `Bu Hafta (${currentActiveWeek}. Hafta)`;
             
@@ -719,8 +750,6 @@
                 document.getElementById('home-martyr-name').innerText = currentMartyr.name;
                 document.getElementById('home-martyr-desc').innerText = currentMartyr.desc.substring(0, 100) + "...";
                 document.getElementById('home-martyr-img').src = currentMartyr.imgUrl;
-            } else {
-                console.error("Şehit bulunamadı! Hafta:", currentActiveWeek);
             }
 
             renderArchive();
@@ -734,8 +763,6 @@
             const selectedCity = document.getElementById('city-filter')?.value || 'all';
             
             let filteredMartyrs = [...martyrsData];
-            
-            // Arama filtresi: isim, memleket, görev yeri
             if (searchTerm) {
                 filteredMartyrs = filteredMartyrs.filter(m => 
                     m.name.toLowerCase().includes(searchTerm) || 
@@ -743,8 +770,6 @@
                     m.location.toLowerCase().includes(searchTerm)
                 );
             }
-            
-            // Şehir filtresi
             if (selectedCity !== 'all') {
                 filteredMartyrs = filteredMartyrs.filter(m => m.hometown === selectedCity);
             }
@@ -764,15 +789,12 @@
                 `;
                 archiveGrid.appendChild(card);
             });
-            
-            // Filtre dropdown'ını doldur (ilk seferde)
             populateCityFilter();
         }
         
         function populateCityFilter() {
             const citySelect = document.getElementById('city-filter');
             if (!citySelect || citySelect.dataset.populated) return;
-            
             const cities = new Set();
             martyrsData.forEach(m => cities.add(m.hometown));
             const sortedCities = Array.from(cities).sort();
@@ -788,31 +810,19 @@
         function setupSearchAndFilter() {
             const searchInput = document.getElementById('search-input');
             const cityFilter = document.getElementById('city-filter');
-            if (searchInput) {
-                searchInput.addEventListener('input', () => renderArchive());
-            }
-            if (cityFilter) {
-                cityFilter.addEventListener('change', () => renderArchive());
-            }
+            if (searchInput) searchInput.addEventListener('input', () => renderArchive());
+            if (cityFilter) cityFilter.addEventListener('change', () => renderArchive());
         }
 
         function renderCalendar() {
             const grid = document.getElementById('week-grid');
             grid.innerHTML = '';
-
             for (let i = 1; i <= 52; i++) {
                 const div = document.createElement('div');
                 div.className = 'week-box';
                 div.innerText = i + ". Hft";
-
-                if (learnedMartyrs.includes(i)) {
-                    div.classList.add('learned');
-                }
-                // DÜZELTİLDİ: Aktif hafta karşılaştırması güncel currentActiveWeek ile yapılıyor
-                if (i === currentActiveWeek) {
-                    div.classList.add('active');
-                }
-
+                if (learnedMartyrs.includes(i)) div.classList.add('learned');
+                if (i === currentActiveWeek) div.classList.add('active');
                 div.onclick = () => openMartyrModal(i);
                 grid.appendChild(div);
             }
@@ -821,7 +831,6 @@
         function openMartyrModal(weekNum) {
             selectedModalMartyrWeek = weekNum;
             const martyr = martyrsData.find(m => m.week === weekNum);
-            
             document.getElementById('modal-week').innerHTML = `<span class="flag-icon">🇹🇷</span> ${martyr.week}. Hafta Kahramanı`;
             document.getElementById('modal-name').innerHTML = `<span class="flag-icon">🇹🇷</span> ${martyr.name}`;
             document.getElementById('modal-location').innerText = martyr.location;
@@ -829,8 +838,8 @@
             document.getElementById('modal-desc').innerText = martyr.desc;
             document.getElementById('modal-image').src = martyr.imgUrl;
             document.getElementById('modal-story').innerText = martyr.story;
-
             document.getElementById('martyr-modal').style.display = 'flex';
+            trackDetailClick(weekNum);
         }
 
         function closeMartyrModal() {
@@ -844,9 +853,10 @@
                     currentUser.learned = [...learnedMartyrs];
                     saveUserToStorage();
                 }
+                trackLearnClick(selectedModalMartyrWeek);
                 updateProfileStats();
                 renderCalendar();
-                renderArchive(); // arşivde öğrenme durumu değişmez ama takvim güncellenir
+                renderArchive();
                 alert(`🇹🇷 ${selectedModalMartyrWeek}. Hafta kahramanımızın hikayesini öğrendiniz. Başarı kazanıldı! 🇹🇷`);
                 closeMartyrModal();
             } else {
@@ -858,12 +868,8 @@
             const count = learnedMartyrs.length;
             document.getElementById('learned-count').innerText = count;
             document.getElementById('profile-learned-count').innerText = count;
-            
             const progressFill = document.getElementById('achievement-progress');
-            if (count >= 1) {
-                progressFill.style.width = '100%';
-            }
-            
+            if (count >= 1) progressFill.style.width = '100%';
             const achievements = document.querySelectorAll('.achievement-item i');
             if(count >= 1) { 
                 achievements[0].classList.remove('fa-lock');
@@ -895,21 +901,16 @@
         }
 
         function switchView(viewId, navElement = null) {
-            document.querySelectorAll('.view-section').forEach(el => {
-                el.classList.remove('active');
-            });
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
-
             if (navElement) {
-                document.querySelectorAll('.nav-item').forEach(el => {
-                    el.classList.remove('active');
-                });
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
                 navElement.classList.add('active');
             }
             window.scrollTo(0, 0);
+            trackPageView();
         }
 
-        // ----- KAYIT VE GİRİŞ FONKSİYONLARI -----
         function showRegisterForm() {
             document.getElementById('login-form').style.display = 'none';
             document.getElementById('register-form').style.display = 'block';
@@ -924,24 +925,16 @@
             const fullname = document.getElementById('reg-fullname').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
-            
             if (!fullname || !email || !password) {
                 alert('Lütfen tüm alanları doldurun.');
                 return;
             }
-            
             let users = JSON.parse(localStorage.getItem('appUsers') || '[]');
             if (users.find(u => u.email === email)) {
                 alert('Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.');
                 return;
             }
-            
-            const newUser = {
-                email: email,
-                fullname: fullname,
-                password: password,
-                learned: []
-            };
+            const newUser = { email, fullname, password, learned: [], achievements: [] };
             users.push(newUser);
             localStorage.setItem('appUsers', JSON.stringify(users));
             alert('Kayıt başarılı! Şimdi giriş yapabilirsiniz.');
@@ -951,29 +944,23 @@
         function loginUser() {
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
-            
             if (!email || !password) {
                 alert('E-posta ve şifrenizi giriniz.');
                 return;
             }
-            
             let users = JSON.parse(localStorage.getItem('appUsers') || '[]');
             const user = users.find(u => u.email === email && u.password === password);
             if (!user) {
-                alert('E-posta veya şifre hatalı. Kayıtlı değilseniz lütfen kaydolun.');
+                alert('E-posta veya şifre hatalı.');
                 return;
             }
-            
             currentUser = { ...user, learned: user.learned || [] };
             learnedMartyrs = currentUser.learned;
             saveUserToStorage();
-            
             document.getElementById('top-header').style.display = 'flex';
             document.getElementById('bottom-nav').style.display = 'block';
             document.getElementById('user-name-display').innerText = currentUser.fullname || currentUser.email;
             document.getElementById('profile-name').innerText = currentUser.fullname || currentUser.email;
-            
-            // Giriş yapınca haftayı yeniden hesapla
             currentActiveWeek = getCurrentWeek();
             renderCalendar();
             updateProfileStats();
@@ -989,8 +976,6 @@
             document.getElementById('bottom-nav').style.display = 'block';
             document.getElementById('user-name-display').innerText = 'Misafir';
             document.getElementById('profile-name').innerText = 'Misafir Kullanıcı';
-            
-            // Misafir girişinde haftayı yeniden hesapla
             currentActiveWeek = getCurrentWeek();
             renderCalendar();
             updateProfileStats();
@@ -1010,7 +995,6 @@
         function toggleConcept() {
             const content = document.getElementById('concept-content');
             const btn = document.getElementById('toggle-concept-btn');
-            
             if (content.style.display === 'none' || content.style.display === '') {
                 content.style.display = 'block';
                 btn.innerText = '🇹🇷 Kavramı Gizle';
