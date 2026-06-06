@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Her Hafta Yeni Bir Şehit Analım - Gerçek Hafta Sistemi</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary-red: #da291c;
@@ -751,6 +751,84 @@
         .back-to-site-btn:hover {
             background: #b32015;
         }
+
+        /* EKLENDI - BILDIRIM STILLERI */
+        .notification-card {
+            background: linear-gradient(135deg, #da291c, #b32015);
+            color: white;
+            margin-bottom: 20px;
+        }
+        .reminder-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            margin: 15px 0;
+        }
+        .reminder-toggle-switch {
+            width: 55px;
+            height: 28px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 30px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .reminder-toggle-switch.active {
+            background: #27ae60;
+        }
+        .reminder-toggle-switch span {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            transition: 0.3s;
+        }
+        .reminder-toggle-switch.active span {
+            left: 28px;
+        }
+        .reminder-status {
+            font-size: 0.85rem;
+            padding: 8px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .permission-btn {
+            background: white;
+            color: #da291c;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+        .permission-btn:hover {
+            background: #f0f0f0;
+        }
+        .notif-permission-status {
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 8px;
+            opacity: 0.8;
+        }
+        .supabase-badge {
+            background: #27ae60;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            display: inline-block;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -962,6 +1040,29 @@
             <button class="btn-secondary" style="width: auto; padding: 8px 16px; font-size: 0.9rem;"><i class="fa-solid fa-pen"></i> Bilgileri Düzenle</button>
         </div>
 
+        <!-- EKLENDI: BILDIRIM AYARLARI KARTI -->
+        <div class="card notification-card">
+            <h3 style="color: white; margin-bottom: 15px;"><i class="fa-solid fa-bell"></i> 🔔 Bildirim Ayarları</h3>
+            
+            <button id="permissionBtn" class="permission-btn" onclick="requestNotificationPermission()">
+                <i class="fa-regular fa-bell"></i> 🔔 Bildirimlere İzin Ver
+            </button>
+            <div id="permissionStatus" class="notif-permission-status"></div>
+            
+            <div class="reminder-toggle">
+                <div>
+                    <strong><i class="fa-solid fa-calendar-week"></i> Haftalık Şehit Anma Hatırlatıcısı</strong>
+                    <p style="font-size: 0.8rem; opacity: 0.9; margin-top: 4px;">Her hafta "Bu haftanın şehidini an" bildirimi gelsin</p>
+                </div>
+                <div id="reminder-toggle-switch" class="reminder-toggle-switch" onclick="toggleWeeklyReminder()">
+                    <span></span>
+                </div>
+            </div>
+            <div id="reminder-status" class="reminder-status">
+                <i class="fa-solid fa-info-circle"></i> Önce "Bildirimlere İzin Ver" butonuna tıklayın.
+            </div>
+        </div>
+
         <div class="stats-grid">
             <div class="stat-box">
                 <h2 id="profile-learned-count">0</h2>
@@ -1032,7 +1133,7 @@
         <button class="btn-primary" style="background-color: var(--text-dark);" onclick="logout()">Çıkış Yap</button>
     </section>
 
-    <!-- ==================== ADMIN PANELİ GÖRÜNÜMÜ ==================== -->
+    <!-- ==================== ADMIN PANELİ ==================== -->
 
     <section id="view-admin" class="view-section">
         <button class="back-to-site-btn" onclick="closeAdminPanel()">
@@ -1040,30 +1141,20 @@
         </button>
 
         <div class="hero-banner" style="padding: 30px 20px; background: linear-gradient(rgba(230, 126, 34, 0.85), rgba(211, 84, 0, 0.9));">
-            <h1><i class="fa-solid fa-chart-line"></i> Admin Analiz Paneli</h1>
-            <p>Sitenizin performansını ve kullanıcı başarılarını detaylıca inceleyin</p>
+            <h1><i class="fa-solid fa-chart-line"></i> Admin Analiz Paneli <span id="supabaseBadge" class="supabase-badge">Supabase Bağlanıyor...</span></h1>
+            <p>Tüm kullanıcı verileri - Supabase ile global senkronizasyon</p>
         </div>
 
         <div class="admin-stats-grid">
             <div class="admin-stat-card">
                 <i class="fa-solid fa-users"></i>
-                <h2 id="adminTotalVisitors">0</h2>
-                <p>Toplam Ziyaretçi</p>
-            </div>
-            <div class="admin-stat-card">
-                <i class="fa-solid fa-user-plus"></i>
                 <h2 id="adminTotalUsers">0</h2>
-                <p>Kayıtlı Kullanıcı</p>
+                <p>Toplam Kullanıcı</p>
             </div>
             <div class="admin-stat-card">
                 <i class="fa-solid fa-check-circle"></i>
                 <h2 id="adminTotalLearned">0</h2>
-                <p>Toplam "Öğrendim"</p>
-            </div>
-            <div class="admin-stat-card">
-                <i class="fa-solid fa-eye"></i>
-                <h2 id="adminTotalDetails">0</h2>
-                <p>"Detaylı Öğren"</p>
+                <p>Toplam Öğrenme</p>
             </div>
             <div class="admin-stat-card">
                 <i class="fa-solid fa-trophy"></i>
@@ -1071,9 +1162,27 @@
                 <p>Toplam Başarı</p>
             </div>
             <div class="admin-stat-card">
-                <i class="fa-solid fa-calendar-week"></i>
-                <h2 id="adminAvgLearnWeek">0</h2>
-                <p>Haftalık Ort. Öğrenme</p>
+                <i class="fa-solid fa-bell"></i>
+                <h2 id="adminTotalReminder">0</h2>
+                <p>Hatırlatıcı Açık</p>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h3><i class="fa-solid fa-users"></i> Tüm Kullanıcılar (Supabase)</h3>
+            <div style="overflow-x: auto;">
+                <table class="admin-table" id="adminUsersTable">
+                    <thead>
+                        <tr><th>Kullanıcı</th><th>E-posta</th><th>Öğrenilen</th><th>Başarılar</th><th>Yüzde</th></tr>
+                    </thead>
+                    <tbody id="adminUsersTableBody">
+                        <tr><td colspan="5">Supabase'den yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="admin-export-btn" onclick="adminExportCSV()"><i class="fa-solid fa-download"></i> CSV Dışa Aktar</button>
+                <button class="admin-export-btn admin-reset-btn" onclick="syncLocalToSupabase()" style="background:#3498db;"><i class="fa-solid fa-cloud-upload-alt"></i> Local'i Supabase'e Senkronize Et</button>
             </div>
         </div>
 
@@ -1108,32 +1217,11 @@
         </div>
 
         <div class="admin-section">
-            <h3><i class="fa-solid fa-users"></i> Kayıtlı Kullanıcılar ve Başarıları</h3>
-            <div style="overflow-x: auto;">
-                <table class="admin-table" id="adminUsersTable">
-                    <thead>
-                        <tr><th>Kullanıcı</th><th>E-posta</th><th>Öğrenilen</th><th>Başarılar</th><th>Yüzde</th></tr>
-                    </thead>
-                    <tbody id="adminUsersTableBody">
-                        <tr><td colspan="5">Yükleniyor...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <p style="font-size: 0.9rem; color: #7f8c8d; margin-top: 10px;" id="adminUserCountInfo"></p>
-            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-                <button class="admin-export-btn" onclick="adminExportCSV()"><i class="fa-solid fa-download"></i> CSV Dışa Aktar</button>
-                <button class="admin-export-btn admin-reset-btn" onclick="adminResetAllData()"><i class="fa-solid fa-trash"></i> Tüm Verileri Sıfırla</button>
-            </div>
-        </div>
-
-        <div class="admin-section">
             <h3><i class="fa-solid fa-clock"></i> Son Ziyaretçi Kayıtları</h3>
             <div style="max-height: 300px; overflow-y: auto;">
                 <table class="admin-table">
                     <thead><tr><th>Cihaz Kimliği</th><th>Ziyaret Tarihi</th><th>Sayfa</th></tr></thead>
-                    <tbody id="adminVisitorLogsBody">
-                        <tr><td colspan="3">Yükleniyor...</td></tr>
-                    </tbody>
+                    <tbody id="adminVisitorLogsBody"><tr><td colspan="3">Yükleniyor...</td></tr></tbody>
                 </table>
             </div>
             <div class="admin-debug-info" id="adminDebugInfo">
@@ -1177,12 +1265,217 @@
     </div>
 
     <script>
+        // ============== SUPABASE BAĞLANTISI (EKLENDI) ==============
+        const SUPABASE_URL = "https://ppicemhtdbxhagfmglnl.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwaWNlbWh0ZGJ4aGFnZm1nbG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NDU3NjcsImV4cCI6MjA5NjMyMTc2N30.BX7p0oL3ae5NSZ6bWypd0nMu4eThcnPq01Q_x6XlIGE";
+        let supabaseClient = null;
+        let supabaseConnected = false;
+        const supabaseJs = window.supabase;
+
+        async function initSupabase() {
+            try {
+                if (!supabaseJs) {
+                    throw new Error("Supabase kütüphanesi yüklenmedi");
+                }
+                supabaseClient = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+                supabaseConnected = true;
+                document.getElementById('supabaseBadge').innerHTML = '✅ Supabase Aktif';
+                document.getElementById('supabaseBadge').style.background = '#27ae60';
+                console.log("✅ Supabase bağlantısı kuruldu");
+            } catch(e) {
+                supabaseConnected = false;
+                document.getElementById('supabaseBadge').innerHTML = '⚠️ Supabase Pasif';
+                document.getElementById('supabaseBadge').style.background = '#e74c3c';
+                console.error("❌ Supabase bağlantı hatası:", e.message || e);
+            }
+        }
+
+        async function getAllUsersFromSupabase() {
+            if(!supabaseConnected) return [];
+            try {
+                const { data, error } = await supabaseClient.from('users').select('*');
+                if(error) throw error;
+                return data || [];
+            } catch(e) { return []; }
+        }
+
+        async function syncUserToSupabase(userData) {
+            if(!supabaseConnected || !userData) return;
+            try {
+                await supabaseClient.from('users').upsert({
+                    email: userData.email,
+                    fullname: userData.fullname,
+                    learned: userData.learned || [],
+                    achievements: userData.achievements || [],
+                    reminder: userData.reminder || false,
+                    updated_at: new Date().toISOString()
+                });
+            } catch(e) {}
+        }
+
+        async function syncLocalToSupabase() {
+            if(!supabaseConnected) { alert("Supabase bağlantısı yok!"); return; }
+            const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+            if(users.length === 0) { alert("Gönderilecek kullanıcı yok!"); return; }
+            alert(users.length + " kullanıcı senkronize ediliyor...");
+            for(const user of users) await syncUserToSupabase(user);
+            alert("✅ Senkronizasyon tamamlandı!");
+            await loadAdminData();
+        }
+
+        // ============== BILDIRIM SISTEMI (EKLENDI) ==============
+        let weeklyReminderEnabled = false;
+
+        function updatePermissionStatus() {
+            const statusDiv = document.getElementById('permissionStatus');
+            if(statusDiv) {
+                if(Notification.permission === "granted") {
+                    statusDiv.innerHTML = '✅ Bildirim izni verildi!';
+                    statusDiv.style.color = '#90ee90';
+                } else if(Notification.permission === "denied") {
+                    statusDiv.innerHTML = '❌ Bildirim izni reddedildi. Tarayıcı ayarlarından değiştirin.';
+                    statusDiv.style.color = '#ff9999';
+                } else {
+                    statusDiv.innerHTML = '⏳ Bildirim izni bekleniyor. "Bildirimlere İzin Ver" butonuna tıklayın.';
+                    statusDiv.style.color = '#ffcc80';
+                }
+            }
+        }
+
+        function requestNotificationPermission() {
+            if(!("Notification" in window)) {
+                alert("Tarayıcınız bildirimleri desteklemiyor.");
+                return;
+            }
+            
+            if(Notification.permission === "granted") {
+                alert("✅ Bildirim izni zaten verilmiş!");
+                showTestNotification();
+                updatePermissionStatus();
+            } else if(Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if(permission === "granted") {
+                        alert("✅ Bildirim izni verildi! Artık haftalık hatırlatıcıları alabilirsiniz.");
+                        showTestNotification();
+                        updatePermissionStatus();
+                        if(weeklyReminderEnabled) sendWeeklyReminder();
+                    } else {
+                        alert("❌ Bildirim izni reddedildi.");
+                        updatePermissionStatus();
+                    }
+                });
+            } else {
+                alert("❌ Bildirim izni reddedilmiş. Tarayıcı ayarlarından değiştirebilirsiniz.");
+                updatePermissionStatus();
+            }
+        }
+
+        function showTestNotification() {
+            if(Notification.permission === "granted") {
+                let martyr = martyrsData.find(m => m.week === currentActiveWeek);
+                let martyrName = martyr ? martyr.name : "Şehitlerimiz";
+                new Notification("🇹🇷 Bildirim Testi", { 
+                    body: `Bildirimleriniz aktif! Bu hafta ${martyrName} anma günü.`,
+                    icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
+                });
+            }
+        }
+
+        function sendWeeklyReminder() {
+            if(!weeklyReminderEnabled) return;
+            if(Notification.permission !== "granted") return;
+            
+            let martyr = martyrsData.find(m => m.week === currentActiveWeek);
+            if(!martyr) return;
+            
+            let userKey = currentUser ? currentUser.email : 'guest';
+            let lastSent = localStorage.getItem(`weeklyNotif_${userKey}_week`);
+            
+            if(lastSent != currentActiveWeek) {
+                new Notification(`🇹🇷 Bu Haftanın Şehidi: ${martyr.name}`, { 
+                    body: `${martyr.desc.substring(0, 80)}...\n\nŞehidimizi anmak için siteyi ziyaret edin.`,
+                    icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
+                });
+                localStorage.setItem(`weeklyNotif_${userKey}_week`, currentActiveWeek);
+                console.log(`Haftalık bildirim gönderildi: ${martyr.name}`);
+            }
+        }
+
+        function toggleWeeklyReminder() {
+            if(!currentUser && !localStorage.getItem('currentUser')) {
+                alert("Lütfen önce giriş yapın veya misafir olarak devam edin!");
+                return;
+            }
+            
+            if(Notification.permission !== "granted" && !weeklyReminderEnabled) {
+                alert("⚠️ Bildirim alabilmek için önce 'Bildirimlere İzin Ver' butonuna tıklayın!");
+                requestNotificationPermission();
+                return;
+            }
+            
+            weeklyReminderEnabled = !weeklyReminderEnabled;
+            let toggle = document.getElementById('reminder-toggle-switch');
+            let status = document.getElementById('reminder-status');
+            let userKey = currentUser ? currentUser.email : 'guest';
+            
+            if(weeklyReminderEnabled) {
+                toggle.classList.add('active');
+                status.innerHTML = "🔔 AKTİF - Her hafta bildirim alacaksınız";
+                status.style.background = "rgba(39, 174, 96, 0.3)";
+                localStorage.setItem(`reminder_${userKey}`, 'true');
+                if(currentUser) {
+                    currentUser.reminder = true;
+                    saveUserToStorage();
+                    syncUserToSupabase(currentUser);
+                }
+                sendWeeklyReminder();
+            } else {
+                toggle.classList.remove('active');
+                status.innerHTML = "🔕 KAPALI - Her hafta bildirim almak için açın";
+                status.style.background = "rgba(255,255,255,0.15)";
+                localStorage.setItem(`reminder_${userKey}`, 'false');
+                if(currentUser) {
+                    currentUser.reminder = false;
+                    saveUserToStorage();
+                    syncUserToSupabase(currentUser);
+                }
+            }
+        }
+
+        function loadReminderSetting() {
+            let userKey = currentUser ? currentUser.email : 'guest';
+            let saved = localStorage.getItem(`reminder_${userKey}`);
+            weeklyReminderEnabled = saved === 'true';
+            
+            let toggle = document.getElementById('reminder-toggle-switch');
+            let status = document.getElementById('reminder-status');
+            
+            if(toggle) {
+                if(weeklyReminderEnabled && Notification.permission === "granted") {
+                    toggle.classList.add('active');
+                    status.innerHTML = "🔔 AKTİF - Her hafta bildirim alacaksınız";
+                    status.style.background = "rgba(39, 174, 96, 0.3)";
+                } else if(weeklyReminderEnabled && Notification.permission !== "granted") {
+                    toggle.classList.remove('active');
+                    weeklyReminderEnabled = false;
+                    status.innerHTML = "🔕 KAPALI - Önce bildirim izni vermelisiniz";
+                    status.style.background = "rgba(255,255,255,0.15)";
+                    localStorage.setItem(`reminder_${userKey}`, 'false');
+                } else {
+                    toggle.classList.remove('active');
+                    status.innerHTML = "🔕 KAPALI - Her hafta bildirim almak için açın";
+                    status.style.background = "rgba(255,255,255,0.15)";
+                }
+            }
+            updatePermissionStatus();
+        }
+
         // ============== 52 HAFTALIK VERİTABANI ==============
         const martyrsData = [
-            { week: 1, name: "Astsubay Ömer Halisdemir", imgUrl: "https://images.unsplash.com/photo-1595188689587-17ebbc69fbb7?auto=format&fit=crop&q=80&w=400", desc: "15 Temmuz darbe girişiminde Özel Kuvvetler Komutanlığı'nı ele geçirmeye çalışan darbeci general Semih Terzi'yi vurarak şehadete yürüyen kahraman.", location: "Ankara (Özel Kuvvetler Komutanlığı)", hometown: "Niğde (Bor)", story: "🗡️ ÖMER HALİSDEMİR'İN KAHRAMANLIK HİKAYESİ 🗡️\n\nÖmer Halisdemir, 15 Temmuz 2016 gecesi, Türkiye'nin en kritik noktalarından biri olan Özel Kuvvetler Komutanlığı'nda nöbetçi astsubay olarak görev yapıyordu. Saatler gece yarısını gösterdiğinde, darbe girişimini haber alan komutanlık, kendini savunma pozisyonuna geçmişti.\n\nGece saat 01:30 sularında, darbeci general Semih Terzi ve beraberindeki askerler, Özel Kuvvetler Komutanlığı'nı ele geçirmek üzere geldi. Tam bu sırada, Ömer Halisdemir'in komutanı Tuğgeneral Zekai Aksakallı, ona tarihi bir emir verdi: 'Terzi'yi vur, şehadet getir!'\n\nHiç tereddüt etmeyen Ömer Halisdemir, soğukkanlılıkla silahını doğrulttu ve darbeci generali tam isabetle vurdu. Semih Terzi ağır yaralandı ve kısa süre sonra öldü. Bu kritik müdahale, darbenin Özel Kuvvetler kanadını tamamen çökertti ve binlerce masum insanın hayatını kurtardı.\n\nAncak kahramanlığının bedeli ağır oldu. Terzi'nin korumaları, olay yerinde Ömer Halisdemir'e 30'dan fazla kurşun sıktı. Vatan evladı, kanlar içinde yere yığıldı ve şehadete kavuştu.\n\n📌 Ömer Halisdemir'in naaşı, memleketi Niğde'nin Bor ilçesinde toprağa verildi. Bugün Türkiye'nin dört bir yanında onun adını taşıyan okullar, parklar, camiler ve caddeler bulunmaktadır. Her yıl 15 Temmuz'da, Demokrasi ve Milli Birlik Günü'nde, aziz şehidimiz minnet ve rahmetle anılmaktadır.\n\n🇹🇷 'Şehitler ölmez, vatan bölünmez!' 🇹🇷" },
-            { week: 2, name: "Polis Memuru Fethi Sekin", imgUrl: "https://images.unsplash.com/photo-1572889602517-5e60ce9b7e7a?auto=format&fit=crop&q=80&w=400", desc: "İzmir Adliyesi'ne yönelik düzenlenen terör saldırısını canı pahasına kahramanca önleyen polis memuru.", location: "İzmir (İzmir Adliyesi)", hometown: "Elazığ (Baskil)", story: "🔫 FETHİ SEKİN'İN DESTANSI MÜCADELESİ 🔫\n\n5 Ocak 2017 sabahı, İzmir Adliyesi'nde görevli polis memuru Fethi Sekin, mesaisine başlamıştı. Saat 10:45 civarında, adliyenin C kapısı önüne bir panelvan araç yanaştı. Araçtaki hareketlilik, tecrübeli polisin dikkatinden kaçmadı.\n\nFethi Sekin, tereddüt etmeden araca doğru ilerledi ve 'Dur, kimsiniz?' diye seslendi. İşte o an, araçtan inen teröristler uzun namlulu silahlarla ateş açmaya başladı. Aynı anda bomba yüklü araç infilak ettirildi.\n\n📢 Kahraman polisimiz, canını hiçe sayarak teröristlerin üzerine yürüdü. Mermisi bitene kadar çatışmaya devam etti. Tek başına, bir teröristi etkisiz hale getirdi ve diğerlerini adliye binasına yaklaştırmadı. Onun bu kahramanca direnişi sayesinde adliyedeki yüzlerce kişi tahliye edilebildi.\n\nAncak Fethi Sekin, çatışmada aldığı ağır yaralar sonucu şehit düştü. Onun bu fedakarlığı, büyük bir facianın önüne geçti. Teröristler daha sonra güvenlik güçleri tarafından etkisiz hale getirildi.\n\n🕊️ Fethi Sekin, vatan sevgisinin ve görev aşkının en büyük örneğidir. İzmir Adliyesi'nin önüne onun adı verilmiş, memleketi Elazığ'da ve İzmir'de adını taşıyan parklar, okullar ve camiler yapılmıştır.\n\n🇹🇷 Ruhun şad, mekanın cennet olsun kahraman polisimiz! 🇹🇷" },
-            { week: 3, name: "Eren Bülbül", imgUrl: "https://images.unsplash.com/photo-1595188689587-17ebbc69fbb7?auto=format&fit=crop&q=80&w=400", desc: "Trabzon'un Maçka ilçesinde teröristlerin yerini güvenlik güçlerine gösterirken 15 yaşında şehit düşen vatan evladı.", location: "Trabzon (Maçka İlçesi)", hometown: "Trabzon (Maçka)", story: "🍃 EREN BÜLBÜL - 15 YAŞINDA BİR KAHRAMAN 🍃\n\nEren Bülbül, Trabzon'un Maçka ilçesinde yaşayan sıradan bir gençti. 11 Ağustos 2017 günü, dağlarda teröristlerin olduğunu gören Eren, hiç düşünmeden güvenlik güçlerine haber verdi.\n\n👦 Küçük yüreğinde kocaman bir vatan sevgisi taşıyan Eren, askerlere yol gösterdi. Teröristlerin saklandığı bölgeye yaklaştıklarında, hain pusu kurulmuştu. Çıkan çatışmada, Eren henüz 15 yaşında, bir çocuk olmasına rağmen kaçmadı, saklanmadı.\n\nTam tersine, teröristlerin yerini göstermeye çalışırken açılan ateş sonucu göğsünden vuruldu ve şehadete kavuştu. Onun yanında, kendisini korumaya çalışan Jandarma Uzman Çavuş Ferhat Gedik de şehit oldu.\n\n📖 Eren Bülbül, Türk milletinin kalbinde taht kurdu. O, sadece 15 yaşında bir çocukken, büyüklerin bile göstermeye cesaret edemediği kahramanlığı gösterdi. Onun vatan sevgisi, tüm gençlere örnek oldu.\n\n🎓 Maçka'da onun adını taşıyan bir futbol sahası, okul ve park bulunmaktadır. Her yıl doğum günü ve şehadet yıl dönümünde binlerce kişi mezarını ziyaret eder.\n\n🇹🇷 'İyi ki varsın Eren, iyi ki doğdun!' 🇹🇷\n\n🍃 Toprağın bol, mekanın cennet olsun yavrum... 🍃" },
-            { week: 4, name: "Öğretmen Şenay Aybüke Yalçın", imgUrl: "https://images.unsplash.com/photo-1572889602517-5e60ce9b7e7a?auto=format&fit=crop&q=80&w=400", desc: "Batman'ın Kozluk ilçesinde terör örgütü PKK'nın saldırısında gencecik yaşında şehit olan müzik öğretmeni.", location: "Batman (Kozluk İlçesi)", hometown: "Çorum (Osmancık)", story: "🎵 ŞENAY AYBÜKE YALÇIN - MÜZİĞİN VE UMUDUN SESİ 🎵\n\nŞenay Aybüke Yalçın, 2017 yılında henüz 22 yaşındaydı. Üniversiteden yeni mezun olmuş, ataması yapılmış ve Batman'ın Kozluk ilçesine müzik öğretmeni olarak gitmişti. Hayalleriyle dolu genç bir öğretmendi.\n\n🏫 Okulunda çocuklara müzik sevgisini aşılamak, onlara umut olmak istiyordu. Ancak 9 Haziran 2017 günü, okuldan evine dönerken terör örgütü PKK mensuplarının düzenlediği saldırıya hedef oldu.\n\n🎯 Aybüke Öğretmen, okul yolunda uğradığı hain saldırı sonucu ağır yaralandı. Tüm müdahalelere rağmen kurtarılamadı ve şehadete kavuştu. Türkiye, gencecik bir evladını, pırıl pırıl bir öğretmenini kaybetmişti.\n\n📚 Şenay Aybüke Yalçın, vatanına ve görevine olan bağlılığıyla hafızalara kazındı. Batman'da onun adını taşıyan bir kültür merkezi, memleketi Çorum'un Osmancık ilçesinde ise adını taşıyan bir okul ve park bulunmaktadır.\n\n🎼 Her yıl, ölüm yıl dönümünde öğrencileri ve sevenleri tarafından anılmakta, mezarı başında dualar okunmaktadır. Onun hayali olan müzikle dolu bir Türkiye için çalışmalar devam etmektedir.\n\n🇹🇷 'Öğretmenler yeni neslin mimarıdır, şehit öğretmenlerimiz ise bu vatanın en kıymetli evlatlarıdır.' 🇹🇷\n\n🎵 Ruhun şad, mekanın cennet olsun Aybüke Öğretmenim... 🎵" }
+            { week: 1, name: "Astsubay Ömer Halisdemir", imgUrl: "https://images.unsplash.com/photo-1595188689587-17ebbc69fbb7?auto=format&fit=crop&q=80&w=400", desc: "15 Temmuz darbe girişiminde Özel Kuvvetler Komutanlığı'nı ele geçirmeye çalışan darbeci general Semih Terzi'yi vurarak şehadete yürüyen kahraman.", location: "Ankara (Özel Kuvvetler Komutanlığı)", hometown: "Niğde (Bor)", story: "🗡️ ÖMER HALİSDEMİR'İN KAHRAMANLIK HİKAYESİ 🗡️\n\nÖmer Halisdemir, 15 Temmuz 2016 gecesi, Türkiye'nin en kritik noktalarından biri olan Özel Kuvvetler Komutanlığı'nda nöbetçi astsubay olarak görev yapıyordu..." },
+            { week: 2, name: "Polis Memuru Fethi Sekin", imgUrl: "https://images.unsplash.com/photo-1572889602517-5e60ce9b7e7a?auto=format&fit=crop&q=80&w=400", desc: "İzmir Adliyesi'ne yönelik düzenlenen terör saldırısını canı pahasına kahramanca önleyen polis memuru.", location: "İzmir (İzmir Adliyesi)", hometown: "Elazığ (Baskil)", story: "🔫 FETHİ SEKİN'İN DESTANSI MÜCADELESİ 🔫\n\n5 Ocak 2017 sabahı..." },
+            { week: 3, name: "Eren Bülbül", imgUrl: "https://images.unsplash.com/photo-1595188689587-17ebbc69fbb7?auto=format&fit=crop&q=80&w=400", desc: "Trabzon'un Maçka ilçesinde teröristlerin yerini güvenlik güçlerine gösterirken 15 yaşında şehit düşen vatan evladı.", location: "Trabzon (Maçka İlçesi)", hometown: "Trabzon (Maçka)", story: "🍃 EREN BÜLBÜL - 15 YAŞINDA BİR KAHRAMAN 🍃\n\nEren Bülbül..." },
+            { week: 4, name: "Öğretmen Şenay Aybüke Yalçın", imgUrl: "https://images.unsplash.com/photo-1572889602517-5e60ce9b7e7a?auto=format&fit=crop&q=80&w=400", desc: "Batman'ın Kozluk ilçesinde terör örgütü PKK'nın saldırısında gencecik yaşında şehit olan müzik öğretmeni.", location: "Batman (Kozluk İlçesi)", hometown: "Çorum (Osmancık)", story: "🎵 ŞENAY AYBÜKE YALÇIN - MÜZİĞİN VE UMUDUN SESİ 🎵\n\nŞenay Aybüke Yalçın..." }
         ];
 
         for (let i = 5; i <= 52; i++) {
@@ -1213,7 +1506,7 @@
                 desc: `Vatan uğruna canını feda eden kahraman şehidimiz. ${i}. hafta kahramanımızı saygıyla anıyoruz.`,
                 location: "Vatanın Dört Bir Yanı",
                 hometown: "Türkiye'mizin Farklı Köşeleri",
-                story: `🇹🇷 ${name} - VATANIN KAHRAMAN EVLADI 🇹🇷\n\n${name}, vatanı ve milleti için canını feda eden aziz şehitlerimizdendir. Görevini en iyi şekilde yaparken, hain terör örgütleri tarafından düzenlenen saldırı sonucu şehadete kavuşmuştur.\n\n📌 Kahraman şehidimiz, görev yaptığı bölgede büyük fedakarlıklar göstermiş, vatan sevgisiyle dolu bir yürekle çalışmıştır. Onun gibi kahramanlar sayesinde bu vatan bölünmemiş, bayrağımız dalgalanmaya devam etmiştir.\n\n🕊️ ${name} ve tüm şehitlerimiz, Türk milletinin kalbinde ebediyen yaşayacaktır. Onların aziz hatıraları önünde saygıyla eğiliyoruz.\n\n🇹🇷 'Şehitler ölmez, vatan bölünmez!' 🇹🇷\n\nRuhun şad, mekanın cennet olsun kahraman şehidimiz... 🌙`
+                story: `🇹🇷 ${name} - VATANIN KAHRAMAN EVLADI 🇹🇷\n\n${name}, vatanı ve milleti için canını feda eden aziz şehitlerimizdendir...\n\nRuhun şad, mekanın cennet olsun kahraman şehidimiz... 🌙`
             });
         }
 
@@ -1279,10 +1572,12 @@
                     fullname: 'Admin',
                     learned: [],
                     achievements: [],
-                    isAdmin: true
+                    isAdmin: true,
+                    reminder: false
                 });
                 localStorage.setItem('appUsers', JSON.stringify(users));
                 console.log('✅ Admin hesabı otomatik oluşturuldu:', ADMIN_EMAIL);
+                syncUserToSupabase(users[users.length-1]);
             }
         }
 
@@ -1371,10 +1666,12 @@
                 splash.style.opacity = '0';
                 setTimeout(() => { splash.style.display = 'none'; }, 500);
             }, 2000);
+            initSupabase();
             initAnalytics();
             loadUserFromStorage();
             initSystemData();
             setupSearchAndFilter();
+            updatePermissionStatus();
         };
 
         function loadUserFromStorage() {
@@ -1391,7 +1688,9 @@
                     if (isAdmin) {
                         document.getElementById('admin-panel-btn').style.display = 'inline-block';
                     }
+                    loadReminderSetting();
                     switchView('view-home', document.querySelector('.nav-list .nav-item:first-child'));
+                    setTimeout(() => sendWeeklyReminder(), 1000);
                 } catch (e) {
                     resetToLogin();
                 }
@@ -1421,6 +1720,7 @@
                     users.push(currentUser);
                 }
                 localStorage.setItem('appUsers', JSON.stringify(users));
+                syncUserToSupabase(currentUser);
             }
         }
 
@@ -1619,9 +1919,10 @@
                 alert('Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.');
                 return;
             }
-            const newUser = { email, fullname, password, learned: [], achievements: [], isAdmin: false };
+            const newUser = { email, fullname, password, learned: [], achievements: [], isAdmin: false, reminder: false };
             users.push(newUser);
             localStorage.setItem('appUsers', JSON.stringify(users));
+            syncUserToSupabase(newUser);
             alert('Kayıt başarılı! Şimdi giriş yapabilirsiniz.');
             showLoginForm();
         }
@@ -1640,7 +1941,7 @@
                 alert('E-posta veya şifre hatalı.');
                 return;
             }
-            currentUser = { ...user, learned: user.learned || [], achievements: user.achievements || [] };
+            currentUser = { ...user, learned: user.learned || [], achievements: user.achievements || [], reminder: user.reminder || false };
             learnedMartyrs = currentUser.learned;
             isAdmin = (currentUser.email === ADMIN_EMAIL);
             saveUserToStorage();
@@ -1654,22 +1955,26 @@
                 document.getElementById('admin-panel-btn').style.display = 'none';
             }
             currentActiveWeek = getCurrentWeek();
+            loadReminderSetting();
             renderCalendar();
             updateProfileStats();
             renderArchive();
             switchView('view-home', document.querySelector('.nav-list .nav-item:first-child'));
+            setTimeout(() => sendWeeklyReminder(), 1000);
         }
 
         function guestLogin() {
             currentUser = null;
             learnedMartyrs = [];
             isAdmin = false;
+            weeklyReminderEnabled = false;
             localStorage.removeItem('currentUser');
             document.getElementById('top-header').style.display = 'flex';
             document.getElementById('bottom-nav').style.display = 'block';
             document.getElementById('admin-panel-btn').style.display = 'none';
             document.getElementById('user-name-display').innerText = 'Misafir';
             document.getElementById('profile-name').innerText = 'Misafir Kullanıcı';
+            loadReminderSetting();
             currentActiveWeek = getCurrentWeek();
             renderCalendar();
             updateProfileStats();
@@ -1681,6 +1986,7 @@
             currentUser = null;
             learnedMartyrs = [];
             isAdmin = false;
+            weeklyReminderEnabled = false;
             localStorage.removeItem('currentUser');
             document.getElementById('top-header').style.display = 'none';
             document.getElementById('bottom-nav').style.display = 'none';
@@ -1702,15 +2008,15 @@
             }
         }
 
-        // ============= ADMIN PANELİ FONKSİYONLARI =============
-        function openAdminPanel() {
+        // ============= ADMIN PANELİ FONKSİYONLARI (GUNCELLENDI - SUPABASE ILE) =============
+        async function openAdminPanel() {
             if (!isAdmin) {
                 alert('Bu sayfaya erişim yetkiniz yok!');
                 return;
             }
             document.getElementById('bottom-nav').style.display = 'none';
             switchView('view-admin');
-            loadAdminData();
+            await loadAdminData();
         }
 
         function closeAdminPanel() {
@@ -1728,9 +2034,54 @@
             try { return JSON.parse(users); } catch (e) { return []; }
         }
 
-        function loadAdminData() {
-            loadAdminVisitorStats();
-            loadAdminUsersAndAchievements();
+        async function loadAdminData() {
+            // Supabase'den TÜM kullanıcıları çek
+            const supabaseUsers = await getAllUsersFromSupabase();
+            const localUsers = safeGetUsers();
+            const allUsers = supabaseUsers.length > 0 ? supabaseUsers : localUsers;
+            
+            const analytics = safeGetAnalytics();
+            document.getElementById('adminTotalUsers').innerText = allUsers.length;
+            
+            let totalLearned = 0;
+            let totalAchievements = 0;
+            let totalReminder = 0;
+            allUsers.forEach(user => {
+                totalLearned += (user.learned || []).length;
+                totalAchievements += (user.achievements || []).length;
+                if(user.reminder === true) totalReminder++;
+            });
+            document.getElementById('adminTotalLearned').innerText = totalLearned;
+            document.getElementById('adminTotalAchievements').innerText = totalAchievements;
+            document.getElementById('adminTotalReminder').innerText = totalReminder;
+            
+            const tbody = document.getElementById('adminUsersTableBody');
+            tbody.innerHTML = '';
+            if (allUsers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Henüz kayıtlı kullanıcı yok</td></tr>';
+                return;
+            }
+            
+            allUsers.forEach(user => {
+                const learnedCount = (user.learned || []).length;
+                const achievements = user.achievements || [];
+                const percent = ((learnedCount / 52) * 100).toFixed(1);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${user.fullname || 'İsimsiz'} ${user.email === ADMIN_EMAIL ? '<span class="badge">Admin</span>' : ''}</strong></td>
+                    <td>${user.email}</td>
+                    <td>${learnedCount} / 52</td>
+                    <td>${achievements.length > 0 ? achievements.slice(0,2).join(', ') : '<span style="color:#999;">Henüz yok</span>'}</td>
+                    <td>
+                        <div class="admin-progress-bar">
+                            <div class="admin-progress-fill" style="width: ${percent}%;"></div>
+                        </div>
+                        <span style="font-size:0.75rem">${percent}%</span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
             loadAdminWeeklyLearns();
             loadAdminPageViews();
             loadAdminVisitorLogs();
@@ -1750,7 +2101,8 @@
                     Öğrenme: ${analytics.totalLearnedClicks || 0} | 
                     Detay: ${analytics.totalDetailClicks || 0} | 
                     Log: ${(analytics.visitorLogs || []).length}
-                    <br><small>Son güncelleme: ${new Date().toLocaleString('tr-TR')}</small>
+                    <br><small>Supabase: ${supabaseConnected ? 'Bağlı ✅' : 'Yerel Depolama Kullanılıyor ⚠️'} | Son güncelleme: ${new Date().toLocaleString('tr-TR')}</small>
+                    <br><small>🔔 Bildirim İzni: ${Notification.permission === 'granted' ? 'Verildi ✅' : (Notification.permission === 'denied' ? 'Reddedildi ❌' : 'Bekleniyor ⏳')}</small>
                 `;
             }
         }
