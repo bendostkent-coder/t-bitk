@@ -1641,7 +1641,8 @@
             let analytics = ensureAnalyticsStructure();
             analytics.totalLearnedClicks = (analytics.totalLearnedClicks || 0) + 1;
             if (!analytics.weeklyLearns) analytics.weeklyLearns = {};
-            analytics.weeklyLearns[weekNum] = (analytics.weeklyLearns[weekNum] || 0) + 1;
+            const weekKey = String(weekNum);
+            analytics.weeklyLearns[weekKey] = (analytics.weeklyLearns[weekKey] || 0) + 1;
             localStorage.setItem('siteAnalytics', JSON.stringify(analytics));
         }
 
@@ -2165,9 +2166,12 @@
             const container = document.getElementById('adminWeekStatsContainer');
             container.innerHTML = '';
             let maxLearn = 0;
-            for (let week in weeklyLearns) { if (weeklyLearns[week] > maxLearn) maxLearn = weeklyLearns[week]; }
+            for (let week in weeklyLearns) { 
+                if (weeklyLearns[week] > maxLearn) maxLearn = weeklyLearns[week]; 
+            }
             for (let i = 1; i <= 52; i++) {
-                const count = weeklyLearns[i] || 0;
+                const weekKey = String(i);
+                const count = weeklyLearns[weekKey] || 0;
                 const percent = maxLearn > 0 ? (count / maxLearn) * 100 : 0;
                 const div = document.createElement('div');
                 div.className = 'admin-week-stat';
@@ -2183,23 +2187,43 @@
             }
             const labels = [];
             const data = [];
-            for (let i = 1; i <= 52; i++) { labels.push(i);
-                data.push(weeklyLearns[i] || 0); }
+            for (let i = 1; i <= 52; i++) { 
+                labels.push(i);
+                data.push(weeklyLearns[String(i)] || 0); 
+            }
             if (adminWeeklyChart) adminWeeklyChart.destroy();
             const ctx = document.getElementById('adminWeeklyChart').getContext('2d');
             adminWeeklyChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: [{ label: 'Öğrenme Tıklanma', data: data, backgroundColor: '#da291c',
-                        borderRadius: 5 }]
+                    datasets: [{ 
+                        label: 'Öğrenme Tıklanma', 
+                        data: data, 
+                        backgroundColor: '#da291c',
+                        borderRadius: 5 
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (ctx) =>
-                                `${ctx.raw} kez` } } },
-                    scales: { x: { ticks: { maxRotation: 90, autoSkip: true, maxTicksLimit: 15 } } }
+                    plugins: { 
+                        legend: { position: 'top' }, 
+                        tooltip: { 
+                            callbacks: { 
+                                label: (ctx) => `${ctx.raw} kez` 
+                            } 
+                        } 
+                    },
+                    scales: { 
+                        x: { 
+                            ticks: { 
+                                maxRotation: 90, 
+                                autoSkip: true, 
+                                maxTicksLimit: 15 
+                            } 
+                        } 
+                    }
                 }
             });
         }
