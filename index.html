@@ -1416,15 +1416,12 @@
             <button class="btn-secondary" style="width: auto; padding: 8px 16px; font-size: 0.9rem;"><i class="fa-solid fa-pen"></i> Bilgileri Düzenle</button>
         </div>
 
-        <!-- EKLENDI: BILDIRIM AYARLARI KARTI -->
         <div class="card notification-card">
             <h3 style="color: white; margin-bottom: 15px;"><i class="fa-solid fa-bell"></i> 🔔 Bildirim Ayarları</h3>
-            
             <button id="permissionBtn" class="permission-btn" onclick="requestNotificationPermission()">
                 <i class="fa-regular fa-bell"></i> 🔔 Bildirimlere İzin Ver
             </button>
             <div id="permissionStatus" class="notif-permission-status"></div>
-            
             <div class="reminder-toggle">
                 <div>
                     <strong><i class="fa-solid fa-calendar-week"></i> Haftalık Şehit Anma Hatırlatıcısı</strong>
@@ -1468,7 +1465,6 @@
 
         <div class="card">
             <h3 style="margin-bottom: 15px; border-bottom: 2px solid var(--light-bg); padding-bottom: 10px;">🏆 Başarılar</h3>
-
             <div class="achievement-item" id="ach-1">
                 <div class="ach-info">
                     <h4 style="color: var(--text-gray);"><span class="flag-icon">🇹🇷</span> İlk Adım</h4>
@@ -1506,7 +1502,12 @@
             </div>
         </div>
 
-        <button class="btn-primary" style="background-color: var(--text-dark);" onclick="logout()">Çıkış Yap</button>
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-weight:700;">Mobil uygulamamız</div>
+            <a href="https://mega.nz/file/ZqkkBajY#dSmNWM8axgEV-Z0y2sxD4JsSnjoaDpxNm_OHDVfYIxw" class="download-btn" target="_blank"><i class="fa-solid fa-mobile"></i> Uygulamayı İndir</a>
+        </div>
+
+        <button class="btn-primary" style="background-color: var(--text-dark); margin-top:12px;" onclick="logout()">Çıkış Yap</button>
     </section>
 
     <!-- ==================== ADMIN PANELİ ==================== -->
@@ -1702,9 +1703,27 @@
                     learned: userData.learned || [],
                     achievements: userData.achievements || [],
                     reminder: userData.reminder || false,
+                    isAdmin: userData.isAdmin || false,
                     updated_at: new Date().toISOString()
                 });
-            } catch(e) {}
+            } catch(e) {
+                console.error('Supabase sync hatası:', e.message || e);
+            }
+        }
+
+        async function fetchUserDataByEmail(email) {
+            if(!supabaseConnected || !email) return null;
+            try {
+                const { data, error } = await supabaseClient.from('users').select('*').eq('email', email).single();
+                if(error) {
+                    if(error.code !== 'PGRST116') console.error('Supabase sorgu hatası:', error.message);
+                    return null;
+                }
+                return data;
+            } catch(e) {
+                console.error('fetchUserDataByEmail hatası:', e.message || e);
+                return null;
+            }
         }
 
         async function syncLocalToSupabase() {
@@ -1719,6 +1738,7 @@
 
         // ============== BILDIRIM SISTEMI (EKLENDI) ==============
         let weeklyReminderEnabled = false;
+        let pendingReminderEnable = false;
 
         function updatePermissionStatus() {
             const statusDiv = document.getElementById('permissionStatus');
@@ -1744,23 +1764,56 @@
             
             if(Notification.permission === "granted") {
                 alert("✅ Bildirim izni zaten verilmiş!");
-                showTestNotification();
+                showActiveNotification();
                 updatePermissionStatus();
             } else if(Notification.permission !== "denied") {
                 Notification.requestPermission().then(permission => {
                     if(permission === "granted") {
                         alert("✅ Bildirim izni verildi! Artık haftalık hatırlatıcıları alabilirsiniz.");
-                        showTestNotification();
+                        showActiveNotification();
                         updatePermissionStatus();
-                        if(weeklyReminderEnabled) sendWeeklyReminder();
+                        if(pendingReminderEnable) {
+                            pendingReminderEnable = false;
+                            weeklyReminderEnabled = true;
+                            const toggle = document.getElementById('reminder-toggle-switch');
+                            const status = document.getElementById('reminder-status');
+                            if(toggle) toggle.classList.add('active');
+                            if(status) {
+                                status.innerHTML = "🔔 AKTİF - Her hafta bildirim alacaksınız";
+                                status.style.background = "rgba(39, 174, 96, 0.3)";
+                            }
+                            let userKey = currentUser ? currentUser.email : 'guest';
+                            localStorage.setItem(`reminder_${userKey}`, 'true');
+                            if(currentUser) {
+                                currentUser.reminder = true;
+                                saveUserToStorage();
+                                syncUserToSupabase(currentUser);
+                            }
+                            showActiveNotification();
+                            sendWeeklyReminder();
+                            scheduleWeeklyReminder();
+                        } else if(weeklyReminderEnabled) {
+                            scheduleWeeklyReminder();
+                        }
                     } else {
+                        pendingReminderEnable = false;
                         alert("❌ Bildirim izni reddedildi.");
                         updatePermissionStatus();
                     }
                 });
             } else {
+                pendingReminderEnable = false;
                 alert("❌ Bildirim izni reddedilmiş. Tarayıcı ayarlarından değiştirebilirsiniz.");
                 updatePermissionStatus();
+            }
+        }
+
+        function showActiveNotification() {
+            if(Notification.permission === "granted") {
+                new Notification("✅ Bildirimler Aktif", {
+                    body: "Bildirimleriniz artık aktif. Her hafta bu haftanın şehidi hakkında bilgi alacaksınız.",
+                    icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
+                });
             }
         }
 
@@ -1768,7 +1821,7 @@
             if(Notification.permission === "granted") {
                 let martyr = martyrsData.find(m => m.week === currentActiveWeek);
                 let martyrName = martyr ? martyr.name : "Şehitlerimiz";
-                new Notification("🇹🇷 Bildirim Testi", { 
+                new Notification("🇹🇷 Bildirim Testi", {
                     body: `Bildirimleriniz aktif! Bu hafta ${martyrName} anma günü.`,
                     icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
                 });
@@ -1795,6 +1848,28 @@
             }
         }
 
+        // Zamanlayıcı: sayfa yüklendiğinde ve arka planda düzenli kontrol
+        let weeklySchedulerId = null;
+        function scheduleWeeklyReminder() {
+            if (!weeklyReminderEnabled || Notification.permission !== 'granted') return;
+            if (weeklySchedulerId) return;
+            // Hemen kontrol et
+            sendWeeklyReminder();
+            // 6 saatte bir kontrol et (tarayıcı açıkken çalışır)
+            weeklySchedulerId = setInterval(() => {
+                // Güncel haftayı yeniden hesapla (hafta değişmiş olabilir)
+                currentActiveWeek = getCurrentWeek();
+                sendWeeklyReminder();
+            }, 6 * 60 * 60 * 1000);
+        }
+
+        function stopWeeklyScheduler() {
+            if (weeklySchedulerId) {
+                clearInterval(weeklySchedulerId);
+                weeklySchedulerId = null;
+            }
+        }
+
         function toggleWeeklyReminder() {
             if(!currentUser && !localStorage.getItem('currentUser')) {
                 alert("Lütfen önce giriş yapın veya misafir olarak devam edin!");
@@ -1802,6 +1877,7 @@
             }
             
             if(Notification.permission !== "granted" && !weeklyReminderEnabled) {
+                pendingReminderEnable = true;
                 alert("⚠️ Bildirim alabilmek için önce 'Bildirimlere İzin Ver' butonuna tıklayın!");
                 requestNotificationPermission();
                 return;
@@ -1822,7 +1898,9 @@
                     saveUserToStorage();
                     syncUserToSupabase(currentUser);
                 }
+                showActiveNotification();
                 sendWeeklyReminder();
+                scheduleWeeklyReminder();
             } else {
                 toggle.classList.remove('active');
                 status.innerHTML = "🔕 KAPALI - Her hafta bildirim almak için açın";
@@ -1833,6 +1911,7 @@
                     saveUserToStorage();
                     syncUserToSupabase(currentUser);
                 }
+                stopWeeklyScheduler();
             }
         }
 
@@ -2054,41 +2133,67 @@
         }
 
         // ============= SPLASH VE BAŞLANGIÇ =============
-        window.onload = () => {
+        window.onload = async () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
                 splash.style.opacity = '0';
                 setTimeout(() => { splash.style.display = 'none'; }, 500);
             }, 2000);
-            initSupabase();
+            await initSupabase();
             initAnalytics();
-            loadUserFromStorage();
+            await loadUserFromStorage();
             initSystemData();
             setupSearchAndFilter();
             updatePermissionStatus();
             loadBannerState();
+            // Eğer kullanıcı daha önce bildirim açtıysa zamanlayıcıyı başlat
+            scheduleWeeklyReminder();
         };
 
-        function loadUserFromStorage() {
+        async function loadUserFromStorage() {
+            if (supabaseConnected) {
+                try {
+                    const { data } = await supabaseClient.auth.getSession();
+                    const session = data?.session;
+                    if (session?.user?.email) {
+                        const email = session.user.email;
+                        const remoteUser = await fetchUserDataByEmail(email);
+                        if (remoteUser) {
+                            currentUser = {
+                                email: remoteUser.email,
+                                fullname: remoteUser.fullname || remoteUser.email,
+                                learned: remoteUser.learned || [],
+                                achievements: remoteUser.achievements || [],
+                                reminder: remoteUser.reminder || false,
+                                isAdmin: remoteUser.isAdmin || false
+                            };
+                        }
+                    }
+                } catch (e) {
+                    console.error('Supabase session yüklenemedi:', e.message || e);
+                }
+            }
             const storedUser = localStorage.getItem('currentUser');
-            if (storedUser) {
+            if (!currentUser && storedUser) {
                 try {
                     currentUser = JSON.parse(storedUser);
-                    learnedMartyrs = currentUser.learned || [];
-                    isAdmin = (currentUser.email === ADMIN_EMAIL);
-                    document.getElementById('top-header').style.display = 'flex';
-                    document.getElementById('bottom-nav').style.display = isAdmin ? 'flex' : 'block';
-                    document.getElementById('user-name-display').innerText = currentUser.fullname || currentUser.email;
-                    document.getElementById('profile-name').innerText = currentUser.fullname || currentUser.email;
-                    if (isAdmin) {
-                        document.getElementById('admin-panel-btn').style.display = 'inline-block';
-                    }
-                    loadReminderSetting();
-                    switchView('view-home', document.querySelector('.nav-list .nav-item:first-child'));
-                    setTimeout(() => sendWeeklyReminder(), 1000);
                 } catch (e) {
-                    resetToLogin();
+                    currentUser = null;
                 }
+            }
+            if (currentUser) {
+                learnedMartyrs = currentUser.learned || [];
+                isAdmin = currentUser.isAdmin || (currentUser.email === ADMIN_EMAIL);
+                document.getElementById('top-header').style.display = 'flex';
+                document.getElementById('bottom-nav').style.display = isAdmin ? 'flex' : 'block';
+                document.getElementById('user-name-display').innerText = currentUser.fullname || currentUser.email;
+                document.getElementById('profile-name').innerText = currentUser.fullname || currentUser.email;
+                if (isAdmin) {
+                    document.getElementById('admin-panel-btn').style.display = 'inline-block';
+                }
+                loadReminderSetting();
+                switchView('view-home', document.querySelector('.nav-list .nav-item:first-child'));
+                setTimeout(() => sendWeeklyReminder(), 1000);
             } else {
                 resetToLogin();
             }
@@ -2106,16 +2211,24 @@
 
         function saveUserToStorage() {
             if (currentUser) {
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                const storedUser = {
+                    email: currentUser.email,
+                    fullname: currentUser.fullname,
+                    learned: currentUser.learned || [],
+                    achievements: currentUser.achievements || [],
+                    reminder: currentUser.reminder || false,
+                    isAdmin: currentUser.isAdmin || false
+                };
+                localStorage.setItem('currentUser', JSON.stringify(storedUser));
                 let users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-                const existingIndex = users.findIndex(u => u.email === currentUser.email);
+                const existingIndex = users.findIndex(u => u.email === storedUser.email);
                 if (existingIndex >= 0) {
-                    users[existingIndex] = currentUser;
+                    users[existingIndex] = { ...users[existingIndex], ...storedUser };
                 } else {
-                    users.push(currentUser);
+                    users.push(storedUser);
                 }
                 localStorage.setItem('appUsers', JSON.stringify(users));
-                syncUserToSupabase(currentUser);
+                syncUserToSupabase(storedUser);
             }
         }
 
@@ -2249,13 +2362,16 @@
 
         function updateProfileStats() {
             const count = learnedMartyrs.length;
-            document.getElementById('learned-count').innerText = count;
-            document.getElementById('profile-learned-count').innerText = count;
+            const learnedCountEl = document.getElementById('learned-count');
+            if (learnedCountEl) learnedCountEl.innerText = count;
+            const profileLearnedEl = document.getElementById('profile-learned-count');
+            if (profileLearnedEl) profileLearnedEl.innerText = count;
             const achCount = currentUser ? (currentUser.achievements || []).length : 0;
-            document.getElementById('profile-achievement-count').innerText = achCount;
+            const profileAchEl = document.getElementById('profile-achievement-count');
+            if (profileAchEl) profileAchEl.innerText = achCount;
             const progressFill = document.getElementById('achievement-progress');
             const firstStepProgress = document.getElementById('first-step-progress');
-            if (count >= 1) {
+            if (count >= 1 && progressFill) {
                 progressFill.style.width = '100%';
                 if (firstStepProgress) firstStepProgress.innerText = '1/1';
             }
@@ -2297,7 +2413,7 @@
             document.getElementById('register-form').style.display = 'none';
         }
 
-        function registerUser() {
+        async function registerUser() {
             const fullname = document.getElementById('reg-fullname').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
@@ -2314,15 +2430,30 @@
                 alert('Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.');
                 return;
             }
-            const newUser = { email, fullname, password, learned: [], achievements: [], isAdmin: false, reminder: false };
-            users.push(newUser);
+            const newUser = { email, fullname, learned: [], achievements: [], isAdmin: false, reminder: false };
+            if (supabaseConnected) {
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                    options: { data: { fullname } }
+                });
+                if (error) {
+                    alert('Kayıt sırasında hata oldu: ' + error.message);
+                    return;
+                }
+                if (!data?.user) {
+                    alert('Kayıt gerçekleştirilemedi. Lütfen tekrar deneyin.');
+                    return;
+                }
+                await syncUserToSupabase(newUser);
+            }
+            users.push({ ...newUser, password });
             localStorage.setItem('appUsers', JSON.stringify(users));
-            syncUserToSupabase(newUser);
             alert('Kayıt başarılı! Şimdi giriş yapabilirsiniz.');
             showLoginForm();
         }
 
-        function loginUser() {
+        async function loginUser() {
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
             if (!email || !password) {
@@ -2330,15 +2461,47 @@
                 return;
             }
             ensureAdminAccount();
-            let users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-            const user = users.find(u => u.email === email && u.password === password);
-            if (!user) {
-                alert('E-posta veya şifre hatalı.');
-                return;
+            let user = null;
+            if (supabaseConnected) {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                    console.warn('Supabase giriş hatası:', error.message);
+                } else if (data?.user) {
+                    const remoteUser = await fetchUserDataByEmail(email);
+                    if (remoteUser) {
+                        user = {
+                            email: remoteUser.email,
+                            fullname: remoteUser.fullname || email,
+                            learned: remoteUser.learned || [],
+                            achievements: remoteUser.achievements || [],
+                            reminder: remoteUser.reminder || false,
+                            isAdmin: remoteUser.isAdmin || false
+                        };
+                    } else {
+                        user = { email, fullname: email, learned: [], achievements: [], reminder: false, isAdmin: false };
+                        await syncUserToSupabase(user);
+                    }
+                }
             }
-            currentUser = { ...user, learned: user.learned || [], achievements: user.achievements || [], reminder: user.reminder || false };
+            if (!user) {
+                const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+                const localUser = users.find(u => u.email === email && u.password === password);
+                if (!localUser) {
+                    alert('E-posta veya şifre hatalı.');
+                    return;
+                }
+                user = {
+                    email: localUser.email,
+                    fullname: localUser.fullname || email,
+                    learned: localUser.learned || [],
+                    achievements: localUser.achievements || [],
+                    reminder: localUser.reminder || false,
+                    isAdmin: localUser.isAdmin || false
+                };
+            }
+            currentUser = user;
             learnedMartyrs = currentUser.learned;
-            isAdmin = (currentUser.email === ADMIN_EMAIL);
+            isAdmin = currentUser.isAdmin;
             saveUserToStorage();
             document.getElementById('top-header').style.display = 'flex';
             document.getElementById('bottom-nav').style.display = 'block';
@@ -2377,12 +2540,19 @@
             switchView('view-home', document.querySelector('.nav-list .nav-item:first-child'));
         }
 
-        function logout() {
+        async function logout() {
             currentUser = null;
             learnedMartyrs = [];
             isAdmin = false;
             weeklyReminderEnabled = false;
             localStorage.removeItem('currentUser');
+            if (supabaseConnected && supabaseClient?.auth) {
+                try {
+                    await supabaseClient.auth.signOut();
+                } catch (e) {
+                    console.warn('Supabase çıkış hatası:', e.message || e);
+                }
+            }
             document.getElementById('top-header').style.display = 'none';
             document.getElementById('bottom-nav').style.display = 'none';
             document.getElementById('admin-panel-btn').style.display = 'none';
