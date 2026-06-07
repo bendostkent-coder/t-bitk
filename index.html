@@ -1557,9 +1557,10 @@
                     </tbody>
                 </table>
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
                 <button class="admin-export-btn" onclick="adminExportCSV()"><i class="fa-solid fa-download"></i> CSV Dışa Aktar</button>
                 <button class="admin-export-btn admin-reset-btn" onclick="syncLocalToSupabase()" style="background:#3498db;"><i class="fa-solid fa-cloud-upload-alt"></i> Local'i Supabase'e Senkronize Et</button>
+                <button class="admin-export-btn admin-reset-btn" onclick="adminResetAllData()" style="background:#e74c3c;"><i class="fa-solid fa-trash"></i> Tüm Hesapları Sıfırla</button>
             </div>
         </div>
 
@@ -1810,8 +1811,8 @@
 
         function showActiveNotification() {
             if(Notification.permission === "granted") {
-                new Notification("✅ Bildirimler Aktif", {
-                    body: "Bildirimleriniz artık aktif. Her hafta bu haftanın şehidi hakkında bilgi alacaksınız.",
+                new Notification("Her Hafta Yeni Şehit Analım", {
+                    body: "Artık her hafta yeni şehitleri öğrenmeniz için bildirim alacaksınız.",
                     icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
                 });
             }
@@ -1821,7 +1822,7 @@
             if(Notification.permission === "granted") {
                 let martyr = martyrsData.find(m => m.week === currentActiveWeek);
                 let martyrName = martyr ? martyr.name : "Şehitlerimiz";
-                new Notification("🇹🇷 Bildirim Testi", {
+                new Notification("Her Hafta Yeni Şehit Analım", {
                     body: `Bildirimleriniz aktif! Bu hafta ${martyrName} anma günü.`,
                     icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
                 });
@@ -1839,8 +1840,8 @@
             let lastSent = localStorage.getItem(`weeklyNotif_${userKey}_week`);
             
             if(lastSent != currentActiveWeek) {
-                new Notification(`🇹🇷 Bu Haftanın Şehidi: ${martyr.name}`, { 
-                    body: `${martyr.desc.substring(0, 80)}...\n\nŞehidimizi anmak için siteyi ziyaret edin.`,
+                new Notification("Her Hafta Yeni Şehit Analım", {
+                    body: `Artık her hafta yeni şehitleri öğrenmeniz için bildirim alacaksınız. Bugün: ${martyr.name} — ${martyr.location}`,
                     icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
                 });
                 localStorage.setItem(`weeklyNotif_${userKey}_week`, currentActiveWeek);
@@ -2212,7 +2213,7 @@
         function saveUserToStorage() {
             if (currentUser) {
                 const storedUser = {
-                    email: currentUser.email,
+                    email: currentUser.email.toLowerCase(),
                     fullname: currentUser.fullname,
                     learned: currentUser.learned || [],
                     achievements: currentUser.achievements || [],
@@ -2415,7 +2416,7 @@
 
         async function registerUser() {
             const fullname = document.getElementById('reg-fullname').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
+            const email = document.getElementById('reg-email').value.trim().toLowerCase();
             const password = document.getElementById('reg-password').value;
             if (!fullname || !email || !password) {
                 alert('Lütfen tüm alanları doldurun.');
@@ -2426,7 +2427,7 @@
                 return;
             }
             let users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-            if (users.find(u => u.email === email)) {
+            if (users.find(u => u.email.toLowerCase() === email)) {
                 alert('Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.');
                 return;
             }
@@ -2449,12 +2450,25 @@
             }
             users.push({ ...newUser, password });
             localStorage.setItem('appUsers', JSON.stringify(users));
-            alert('Kayıt başarılı! Şimdi giriş yapabilirsiniz.');
-            showLoginForm();
+            currentUser = newUser;
+            saveUserToStorage();
+            document.getElementById('top-header').style.display = 'flex';
+            document.getElementById('bottom-nav').style.display = 'block';
+            document.getElementById('user-name-display').innerText = currentUser.fullname || currentUser.email;
+            document.getElementById('profile-name').innerText = currentUser.fullname || currentUser.email;
+            document.getElementById('admin-panel-btn').style.display = 'none';
+            currentActiveWeek = getCurrentWeek();
+            loadReminderSetting();
+            renderCalendar();
+            updateProfileStats();
+            renderArchive();
+            switchView('view-home', document.querySelector('.nav-list .nav-item:first-child'));
+            setTimeout(() => sendWeeklyReminder(), 1000);
+            alert('Kayıt başarılı! Hesabınız açıldı ve giriş yaptınız.');
         }
 
         async function loginUser() {
-            const email = document.getElementById('login-email').value.trim();
+            const email = document.getElementById('login-email').value.trim().toLowerCase();
             const password = document.getElementById('login-password').value;
             if (!email || !password) {
                 alert('E-posta ve şifrenizi giriniz.');
@@ -2485,7 +2499,7 @@
             }
             if (!user) {
                 const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-                const localUser = users.find(u => u.email === email && u.password === password);
+                const localUser = users.find(u => u.email.toLowerCase() === email && u.password === password);
                 if (!localUser) {
                     alert('E-posta veya şifre hatalı.');
                     return;
@@ -2845,10 +2859,17 @@
             document.body.removeChild(link);
         }
 
-        function adminResetAllData() {
+        async function adminResetAllData() {
             if (confirm(
                     '⚠️ TÜM VERİLER SIFIRLANACAK!\n\nBu işlem geri alınamaz. Tüm kullanıcılar, istatistikler ve loglar silinecek.\n\nAdmin hesabı otomatik olarak yeniden oluşturulacak.\n\nDevam etmek istediğinize emin misiniz?'
                     )) {
+                if (supabaseConnected && supabaseClient?.auth) {
+                    try {
+                        await supabaseClient.auth.signOut();
+                    } catch (e) {
+                        console.warn('Supabase çıkış hatası:', e.message || e);
+                    }
+                }
                 const initialAnalytics = {
                     totalVisitors: [],
                     pageViews: { home: 0, martyrs: 0, calendar: 0, profile: 0, login: 0 },
@@ -2860,8 +2881,10 @@
                 localStorage.setItem('siteAnalytics', JSON.stringify(initialAnalytics));
                 localStorage.setItem('appUsers', JSON.stringify([]));
                 localStorage.removeItem('currentUser');
+                localStorage.removeItem('visitorId');
                 ensureAdminAccount();
                 loadAdminData();
+                resetToLogin();
                 alert('✅ Tüm veriler sıfırlandı! Admin hesabı yeniden oluşturuldu.');
             }
         }
